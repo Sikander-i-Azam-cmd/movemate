@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect } from "react"; console.log("new version");
 
 function App() {
   const [view, setView] = useState("main");
