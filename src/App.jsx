@@ -282,12 +282,12 @@ function App() {
       <input placeholder="Street Address" value={street} onChange={(e) => setStreet(e.target.value)} style={input} />
       <input placeholder="Address Line 2" value={address2} onChange={(e) => setAddress2(e.target.value)} style={input} />
 
-      <div style={{ display: "flex", gap: 10 }}>
+      <div style={{ display: "flex", gap: 14 }}>
         <input placeholder="City" value={city} onChange={(e) => setCity(e.target.value)} style={input} />
         <input placeholder="State" value={state} onChange={(e) => setState(e.target.value)} style={input} />
       </div>
 
-      <div style={{ display: "flex", gap: 10 }}>
+      <div style={{ display: "flex", gap: 14 }}>
         <input placeholder="Zip" value={zip} onChange={(e) => setZip(e.target.value)} style={input} />
         <input placeholder="Country" value={country} onChange={(e) => setCountry(e.target.value)} style={input} />
       </div>
@@ -315,20 +315,108 @@ function App() {
 
 // ---------------- STYLES ----------------
 const Centered = ({ children }) => (
-  <div style={{ display: "flex", justifyContent: "center", paddingTop: 40 }}>
-    <div style={{ width: 500 }}>{children}</div>
+  <div style={{ display: "flex", justifyContent: "center", padding: "56px 20px 72px" }}>
+    <div style={panel}>{children}</div>
   </div>
 );
 
-const input = { width: "100%", padding: 10, marginBottom: 10 };
-const row = { display: "flex", justifyContent: "space-between", marginBottom: 10 };
+const panel = {
+  width: "min(100%, 560px)",
+  padding: 32,
+  border: "1px solid var(--border)",
+  borderRadius: 18,
+  background: "var(--surface)",
+  boxShadow: "var(--shadow)",
+  boxSizing: "border-box",
+  textAlign: "left",
+};
 
-const categoryBtn = { width: "100%", padding: 10, marginBottom: 10 };
-const primaryBtn = { width: "100%", padding: 12, marginTop: 10, background: "#007bff", color: "white" };
-const secondaryBtn = { width: "100%", padding: 10, marginTop: 10 };
-const dangerBtn = { background: "red", color: "white" };
+const input = {
+  width: "100%",
+  padding: "14px 16px",
+  marginBottom: 14,
+  border: "1px solid var(--border)",
+  borderRadius: 12,
+  background: "var(--input-bg)",
+  color: "var(--text-h)",
+  font: "inherit",
+  boxSizing: "border-box",
+  outlineColor: "var(--accent)",
+};
 
-const suggestionBox = { position: "absolute", background: "white", border: "1px solid #ccc", width: "100%" };
-const suggestionItem = { padding: 8, cursor: "pointer" };
+const row = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 16,
+  padding: "14px 16px",
+  marginBottom: 12,
+  border: "1px solid var(--border)",
+  borderRadius: 14,
+  background: "var(--row-bg)",
+};
+
+const buttonBase = {
+  width: "100%",
+  padding: "14px 18px",
+  border: "1px solid transparent",
+  borderRadius: 999,
+  font: "inherit",
+  fontWeight: 700,
+  cursor: "pointer",
+  boxSizing: "border-box",
+};
+
+const categoryBtn = {
+  ...buttonBase,
+  marginBottom: 12,
+  background: "var(--category-bg)",
+  color: "var(--text-h)",
+  borderColor: "var(--border)",
+};
+
+const primaryBtn = {
+  ...buttonBase,
+  marginTop: 14,
+  background: "var(--accent)",
+  color: "white",
+  boxShadow: "0 10px 22px rgba(37, 99, 235, 0.22)",
+};
+
+const secondaryBtn = {
+  ...buttonBase,
+  marginTop: 12,
+  background: "var(--secondary-bg)",
+  color: "var(--text-h)",
+  borderColor: "var(--border)",
+};
+
+const dangerBtn = {
+  padding: "8px 12px",
+  border: "none",
+  borderRadius: 999,
+  background: "#dc2626",
+  color: "white",
+  fontWeight: 700,
+  cursor: "pointer",
+};
+
+const suggestionBox = {
+  position: "absolute",
+  zIndex: 5,
+  top: "calc(100% - 10px)",
+  background: "var(--surface)",
+  border: "1px solid var(--border)",
+  borderRadius: 12,
+  width: "100%",
+  boxShadow: "var(--shadow)",
+  overflow: "hidden",
+};
+
+const suggestionItem = {
+  padding: "12px 14px",
+  cursor: "pointer",
+  color: "var(--text-h)",
+};
 
 export default App;
