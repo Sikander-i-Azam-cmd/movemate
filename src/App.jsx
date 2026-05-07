@@ -36,14 +36,14 @@ function App() {
   // ---------------- DATA ----------------
   const defaultCategories = {
     Banks: [
-      { id: 1, text: "Chase", link: "https://www.chase.com", completed: false },
-      { id: 2, text: "Bank of America", link: "https://www.bankofamerica.com", completed: false },
+      { id: 1, text: "Chase", link: "https://www.chase.com", status: "not_started" },
+      { id: 2, text: "Bank of America", link: "https://www.bankofamerica.com", status: "not_started" },
     ],
     "Delivery Apps": [
-      { id: 3, text: "Uber Eats", link: "https://www.ubereats.com", completed: false },
+      { id: 3, text: "Uber Eats", link: "https://www.ubereats.com", status: "not_started" },
     ],
     Subscriptions: [
-      { id: 4, text: "Netflix", link: "https://www.netflix.com", completed: false },
+      { id: 4, text: "Netflix", link: "https://www.netflix.com", status: "not_started" },
     ],
   };
 
@@ -96,20 +96,33 @@ function App() {
     ],
   };
 
+  const normalizeCategories = (data) =>
+    Object.fromEntries(
+      Object.entries(data).map(([cat, items]) => [
+        cat,
+        items.map(({ completed, ...item }) => ({
+          ...item,
+          status: item.status || (completed ? "completed" : "not_started"),
+        })),
+      ])
+    );
+
   const [categories, setCategories] = useState(() => {
     const saved = localStorage.getItem("movemate-categories");
-    return saved ? JSON.parse(saved) : defaultCategories;
+    return normalizeCategories(saved ? JSON.parse(saved) : defaultCategories);
   });
 
   useEffect(() => {
     localStorage.setItem("movemate-categories", JSON.stringify(categories));
   }, [categories]);
 
-  const toggleItem = (cat, id) => {
+  const getItemStatus = (item) => item.status || (item.completed ? "completed" : "not_started");
+
+  const updateItemStatus = (cat, id, status) => {
     setCategories({
       ...categories,
       [cat]: categories[cat].map(i =>
-        i.id === id ? { ...i, completed: !i.completed } : i
+        i.id === id ? { ...i, status } : i
       ),
     });
   };
@@ -139,7 +152,7 @@ function App() {
       ...categories,
       [activeCategory]: [
         ...categories[activeCategory],
-        { id: Date.now(), text: name, link: finalLink, completed: false },
+        { id: Date.now(), text: name, link: finalLink, status: "not_started" },
       ],
     });
 
@@ -150,13 +163,13 @@ function App() {
     const items = categories[cat];
     return {
       total: items.length,
-      done: items.filter(i => i.completed).length,
+      done: items.filter(i => getItemStatus(i) === "completed").length,
     };
   };
 
   const progress = (() => {
     const all = Object.values(categories).flat();
-    const done = all.filter(i => i.completed).length;
+    const done = all.filter(i => getItemStatus(i) === "completed").length;
     return all.length ? Math.round((done / all.length) * 100) : 0;
   })();
 
@@ -168,7 +181,7 @@ function App() {
     Object.keys(categories).forEach(cat => {
       text += `${cat}\n`;
       categories[cat].forEach(item => {
-        text += `${item.completed ? "✔" : "•"} ${item.text}\n`;
+        text += `${getItemStatus(item) === "completed" ? "✔" : "•"} ${item.text}\n`;
       });
       text += "\n";
     });
@@ -198,7 +211,7 @@ function App() {
         <p><strong>{progress}% complete</strong></p>
 
         {Object.keys(categories).map(cat => {
-          const remaining = categories[cat].filter(i => !i.completed);
+          const remaining = categories[cat].filter(i => getItemStatus(i) !== "completed");
           if (!remaining.length) return null;
 
           return (
@@ -223,6 +236,7 @@ function App() {
     const items = categories[activeCategory];
     const existing = items.map(i => i.text.toLowerCase());
     const selectedItem = items.find(i => i.id === selectedItemId);
+    const selectedStatus = selectedItem ? getItemStatus(selectedItem) : "not_started";
 
     const suggestions = (masterLists[activeCategory] || []).filter(item =>
       item.name.toLowerCase().includes(newItem.toLowerCase()) &&
@@ -253,36 +267,47 @@ function App() {
 
         {items
           .filter(i => i.text.toLowerCase().includes(search.toLowerCase()))
-          .map(item => (
-            <div
-              key={item.id}
-              style={item.id === selectedItemId ? selectedRow : row}
-              onClick={() => setSelectedItemId(item.id)}
-            >
-              <div>
-                <input
-                  type="checkbox"
-                  checked={item.completed}
-                  onClick={(e) => e.stopPropagation()}
-                  onChange={() => toggleItem(activeCategory, item.id)}
-                />
-                <span style={{ marginLeft: 8 }}>{item.text}</span>
-              </div>
+          .map(item => {
+            const itemStatus = getItemStatus(item);
+            const itemRowStyle = item.id === selectedItemId
+              ? selectedRow
+              : itemStatus === "completed"
+                ? completedRow
+                : itemStatus === "in_progress"
+                  ? inProgressRow
+                  : row;
 
-              <div style={{ display: "flex", gap: 20 }}>
-                {item.link && <a href={item.link} target="_blank" onClick={(e) => e.stopPropagation()}>Go</a>}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    deleteItem(activeCategory, item.id);
-                  }}
-                  style={dangerBtn}
-                >
-                  X
-                </button>
+            return (
+              <div
+                key={item.id}
+                style={itemRowStyle}
+                onClick={() => {
+                  setSelectedItemId(item.id);
+                  if (itemStatus === "not_started") updateItemStatus(activeCategory, item.id, "in_progress");
+                }}
+              >
+                <div>
+                  <span style={itemStatus === "completed" ? checkmarkDone : checkmark}>
+                    {itemStatus === "completed" ? "✓" : ""}
+                  </span>
+                  <span style={{ marginLeft: 8 }}>{item.text}</span>
+                </div>
+
+                <div style={{ display: "flex", gap: 20 }}>
+                  {item.link && <a href={item.link} target="_blank" onClick={(e) => e.stopPropagation()}>Go</a>}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteItem(activeCategory, item.id);
+                    }}
+                    style={dangerBtn}
+                  >
+                    X
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
 
         {selectedItem && (
           <div style={actionPanel}>
@@ -291,8 +316,8 @@ function App() {
                 <div style={eyebrow}>Guided action</div>
                 <h3 style={actionTitle}>{selectedItem.text}</h3>
               </div>
-              <span style={selectedItem.completed ? statusDone : statusOpen}>
-                {selectedItem.completed ? "Completed" : "To do"}
+              <span style={selectedStatus === "completed" ? statusDone : selectedStatus === "in_progress" ? statusProgress : statusOpen}>
+                {selectedStatus === "completed" ? "Completed" : selectedStatus === "in_progress" ? "In progress" : "Not started"}
               </span>
             </div>
 
@@ -320,9 +345,9 @@ function App() {
 
             <button
               onClick={() => {
-                if (!selectedItem.completed) toggleItem(activeCategory, selectedItem.id);
+                updateItemStatus(activeCategory, selectedItem.id, "completed");
               }}
-              style={selectedItem.completed ? secondaryBtn : primaryBtn}
+              style={selectedStatus === "completed" ? secondaryBtn : primaryBtn}
             >
               Mark as Completed
             </button>
@@ -480,6 +505,40 @@ const selectedRow = {
   boxShadow: "var(--shadow-hover)",
 };
 
+const inProgressRow = {
+  ...row,
+  borderColor: "var(--accent-border)",
+  background: "var(--accent-bg)",
+};
+
+const completedRow = {
+  ...row,
+  borderColor: "var(--success-border)",
+  background: "var(--success-bg)",
+  opacity: 0.72,
+};
+
+const checkmark = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: 18,
+  height: 18,
+  border: "1px solid var(--border-strong)",
+  borderRadius: 6,
+  color: "transparent",
+  fontSize: 13,
+  fontWeight: 900,
+  verticalAlign: "middle",
+};
+
+const checkmarkDone = {
+  ...checkmark,
+  borderColor: "var(--success-border)",
+  background: "var(--success-bg)",
+  color: "#15803d",
+};
+
 const buttonBase = {
   display: "flex",
   alignItems: "center",
@@ -590,6 +649,12 @@ const statusOpen = {
   fontSize: 12,
   fontWeight: 800,
   whiteSpace: "nowrap",
+};
+
+const statusProgress = {
+  ...statusOpen,
+  background: "var(--accent-bg)",
+  color: "var(--accent-strong)",
 };
 
 const statusDone = {
