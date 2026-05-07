@@ -315,16 +315,16 @@ function App() {
 
 // ---------------- STYLES ----------------
 const Centered = ({ children }) => (
-  <div style={{ display: "flex", justifyContent: "center", padding: "56px 20px 72px" }}>
+  <div style={{ display: "flex", justifyContent: "center", padding: "64px 20px 80px" }}>
     <div style={panel}>{children}</div>
   </div>
 );
 
 const panel = {
   width: "min(100%, 560px)",
-  padding: 32,
+  padding: 36,
   border: "1px solid var(--border)",
-  borderRadius: 18,
+  borderRadius: 12,
   background: "var(--surface)",
   boxShadow: "var(--shadow)",
   boxSizing: "border-box",
@@ -342,6 +342,7 @@ const input = {
   font: "inherit",
   boxSizing: "border-box",
   outlineColor: "var(--accent)",
+  transition: "border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease, background-color 0.18s ease",
 };
 
 const row = {
@@ -352,19 +353,22 @@ const row = {
   padding: "14px 16px",
   marginBottom: 12,
   border: "1px solid var(--border)",
-  borderRadius: 14,
+  borderRadius: 12,
   background: "var(--row-bg)",
+  boxShadow: "var(--shadow-subtle)",
+  transition: "border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease, background-color 0.18s ease",
 };
 
 const buttonBase = {
   width: "100%",
   padding: "14px 18px",
   border: "1px solid transparent",
-  borderRadius: 999,
+  borderRadius: 12,
   font: "inherit",
   fontWeight: 700,
   cursor: "pointer",
   boxSizing: "border-box",
+  letterSpacing: 0,
 };
 
 const categoryBtn = {
@@ -380,7 +384,7 @@ const primaryBtn = {
   marginTop: 14,
   background: "var(--accent)",
   color: "white",
-  boxShadow: "0 10px 22px rgba(37, 99, 235, 0.22)",
+  boxShadow: "0 10px 20px rgba(37, 99, 235, 0.18)",
 };
 
 const secondaryBtn = {
@@ -393,12 +397,13 @@ const secondaryBtn = {
 
 const dangerBtn = {
   padding: "8px 12px",
-  border: "none",
-  borderRadius: 999,
+  border: "1px solid rgba(220, 38, 38, 0.18)",
+  borderRadius: 10,
   background: "#dc2626",
   color: "white",
   fontWeight: 700,
   cursor: "pointer",
+  boxShadow: "0 8px 16px rgba(220, 38, 38, 0.16)",
 };
 
 const suggestionBox = {
@@ -411,12 +416,14 @@ const suggestionBox = {
   width: "100%",
   boxShadow: "var(--shadow)",
   overflow: "hidden",
+  boxSizing: "border-box",
 };
 
 const suggestionItem = {
   padding: "12px 14px",
   cursor: "pointer",
   color: "var(--text-h)",
+  transition: "background-color 0.18s ease, color 0.18s ease",
 };
 
 export default App;

@@ -8,13 +8,22 @@
   --category-bg: #f8fafc;
   --secondary-bg: #ffffff;
   --border: #dde3ec;
+  --border-strong: #cbd5e1;
   --code-bg: #f4f3ec;
   --accent: #2563eb;
+  --accent-strong: #1d4ed8;
   --accent-bg: rgba(37, 99, 235, 0.1);
   --accent-border: rgba(37, 99, 235, 0.38);
+  --success-bg: rgba(22, 163, 74, 0.08);
+  --success-border: rgba(22, 163, 74, 0.28);
+  --radius: 12px;
   --social-bg: rgba(244, 243, 236, 0.5);
   --shadow:
     rgba(15, 23, 42, 0.08) 0 18px 45px -18px, rgba(15, 23, 42, 0.05) 0 8px 18px -12px;
+  --shadow-subtle:
+    rgba(15, 23, 42, 0.04) 0 8px 20px -14px;
+  --shadow-hover:
+    rgba(15, 23, 42, 0.1) 0 14px 28px -18px, rgba(15, 23, 42, 0.05) 0 6px 14px -10px;
 
   --sans: Inter, ui-sans-serif, system-ui, 'Segoe UI', Roboto, sans-serif;
   --heading: Inter, ui-sans-serif, system-ui, 'Segoe UI', Roboto, sans-serif;
@@ -46,13 +55,21 @@
     --category-bg: #1d2636;
     --secondary-bg: #151e2c;
     --border: #2e303a;
+    --border-strong: #475569;
     --code-bg: #1f2028;
     --accent: #60a5fa;
+    --accent-strong: #93c5fd;
     --accent-bg: rgba(96, 165, 250, 0.15);
     --accent-border: rgba(96, 165, 250, 0.5);
+    --success-bg: rgba(34, 197, 94, 0.12);
+    --success-border: rgba(34, 197, 94, 0.32);
     --social-bg: rgba(47, 48, 58, 0.5);
     --shadow:
       rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
+    --shadow-subtle:
+      rgba(0, 0, 0, 0.2) 0 8px 16px -14px;
+    --shadow-hover:
+      rgba(0, 0, 0, 0.34) 0 16px 30px -18px;
   }
 
   #social .button-icon {
@@ -66,6 +83,10 @@ body {
   background:
     radial-gradient(circle at top left, rgba(37, 99, 235, 0.08), transparent 32rem),
     var(--bg);
+}
+
+* {
+  box-sizing: border-box;
 }
 
 #root {
@@ -90,7 +111,7 @@ h2 {
 h1 {
   font-size: 44px;
   line-height: 108%;
-  margin: 0 0 28px;
+  margin: 0 0 30px;
   @media (max-width: 1024px) {
     font-size: 34px;
     margin-bottom: 22px;
@@ -99,7 +120,7 @@ h1 {
 h2 {
   font-size: 30px;
   line-height: 116%;
-  margin: 0 0 20px;
+  margin: 0 0 24px;
   @media (max-width: 1024px) {
     font-size: 26px;
   }
@@ -108,21 +129,85 @@ h3 {
   color: var(--text-h);
   font-size: 18px;
   line-height: 130%;
-  margin: 22px 0 12px;
+  margin: 28px 0 14px;
+  padding-top: 22px;
+  border-top: 1px solid var(--border);
 }
 p {
-  margin: 0 0 18px;
+  margin: 0 0 22px;
   color: var(--text);
+}
+
+strong {
+  color: var(--text-h);
 }
 
 a {
   color: var(--accent);
   font-weight: 700;
   text-decoration: none;
+  border-radius: 8px;
+  transition:
+    color 0.18s ease,
+    background-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+a:hover {
+  color: var(--accent-strong);
+  background: var(--accent-bg);
+  box-shadow: 0 0 0 6px var(--accent-bg);
+}
+
+input {
+  min-height: 48px;
+}
+
+input:hover {
+  border-color: var(--border-strong) !important;
+  box-shadow: var(--shadow-subtle);
+}
+
+input:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 4px var(--accent-bg), var(--shadow-subtle);
+  transform: translateY(-1px);
 }
 
 input::placeholder {
   color: #8b95a7;
+}
+
+input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  min-height: 18px;
+  accent-color: var(--accent);
+  cursor: pointer;
+  vertical-align: middle;
+}
+
+div:has(> div > input[type="checkbox"]) {
+  cursor: default;
+}
+
+div:has(> div > input[type="checkbox"]):hover {
+  border-color: var(--accent-border) !important;
+  background: var(--surface) !important;
+  box-shadow: var(--shadow-hover) !important;
+  transform: translateY(-1px);
+}
+
+div:has(> div > input[type="checkbox"]:checked) {
+  border-color: var(--success-border) !important;
+  background: var(--success-bg) !important;
+}
+
+div:has(> div > input[type="checkbox"]:checked) span {
+  color: var(--text);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+  text-decoration-color: var(--border-strong);
 }
 
 button {
@@ -130,11 +215,27 @@ button {
     transform 0.18s ease,
     box-shadow 0.18s ease,
     border-color 0.18s ease,
-    background-color 0.18s ease;
+    background-color 0.18s ease,
+    color 0.18s ease;
 }
 
 button:hover {
-  transform: translateY(-1px);
+  border-color: var(--accent-border) !important;
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-1px) scale(1.01);
+}
+
+button:active {
+  transform: translateY(0) scale(0.99);
+}
+
+button[style*="var(--accent)"]:hover {
+  background: var(--accent-strong) !important;
+}
+
+div[style*="cursor: pointer"]:hover {
+  background: var(--accent-bg);
+  color: var(--accent-strong) !important;
 }
 
 button:focus-visible,
@@ -142,6 +243,13 @@ input:focus-visible,
 a:focus-visible {
   outline: 3px solid var(--accent-border);
   outline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+  h3 {
+    margin-top: 22px;
+    padding-top: 18px;
+  }
 }
 
 code,
