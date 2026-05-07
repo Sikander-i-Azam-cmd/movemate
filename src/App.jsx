@@ -120,20 +120,21 @@ function App() {
     ],
   };
 
-  const normalizeCategories = (data) =>
+  const normalizeItem = ({ completed, ...item }) => ({
+    ...item,
+    status: item.status || (completed ? "completed" : "not_started"),
+  });
+
+  const mergeCategories = (defaults, saved = {}) =>
     Object.fromEntries(
-      Object.entries(data).map(([cat, items]) => [
+      Object.entries(defaults).map(([cat, defaultItems]) => [
         cat,
-        items.map(({ completed, ...item }) => ({
-          ...item,
-          status: item.status || (completed ? "completed" : "not_started"),
-        })),
+        saved[cat] ? saved[cat].map(normalizeItem) : defaultItems,
       ])
     );
 
   const [categories, setCategories] = useState(() => {
-    const saved = localStorage.getItem("movemate-categories");
-    return normalizeCategories(saved ? JSON.parse(saved) : defaultCategories);
+    return defaultCategories;
   });
 
   useEffect(() => {
