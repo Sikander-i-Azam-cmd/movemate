@@ -3,6 +3,7 @@ import { useState, useEffect } from "react"; console.log("new version");
 function App() {
   const [view, setView] = useState("main");
   const [activeCategory, setActiveCategory] = useState(null);
+  const [selectedItemId, setSelectedItemId] = useState(null);
   const [newItem, setNewItem] = useState("");
   const [search, setSearch] = useState("");
 
@@ -217,6 +218,9 @@ function App() {
   if (view === "category") {
     const items = categories[activeCategory];
     const existing = items.map(i => i.text.toLowerCase());
+    const selectedItem = items.find(i => i.id === selectedItemId);
+    const savedName = `${firstName} ${lastName}`.trim() || "Not saved yet";
+    const savedAddress = [street, address2, city, state, zip, country].filter(Boolean).join(", ") || "Not saved yet";
 
     const suggestions = (masterLists[activeCategory] || []).filter(item =>
       item.name.toLowerCase().includes(newItem.toLowerCase()) &&
@@ -248,20 +252,90 @@ function App() {
         {items
           .filter(i => i.text.toLowerCase().includes(search.toLowerCase()))
           .map(item => (
-            <div key={item.id} style={row}>
+            <div
+              key={item.id}
+              style={item.id === selectedItemId ? selectedRow : row}
+              onClick={() => setSelectedItemId(item.id)}
+            >
               <div>
-                <input type="checkbox" checked={item.completed} onChange={() => toggleItem(activeCategory, item.id)} />
+                <input
+                  type="checkbox"
+                  checked={item.completed}
+                  onClick={(e) => e.stopPropagation()}
+                  onChange={() => toggleItem(activeCategory, item.id)}
+                />
                 <span style={{ marginLeft: 8 }}>{item.text}</span>
               </div>
 
               <div style={{ display: "flex", gap: 20 }}>
-                {item.link && <a href={item.link} target="_blank">Go</a>}
-                <button onClick={() => deleteItem(activeCategory, item.id)} style={dangerBtn}>X</button>
+                {item.link && <a href={item.link} target="_blank" onClick={(e) => e.stopPropagation()}>Go</a>}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    deleteItem(activeCategory, item.id);
+                  }}
+                  style={dangerBtn}
+                >
+                  X
+                </button>
               </div>
             </div>
           ))}
 
-        <button onClick={() => setView("main")} style={secondaryBtn}>Back</button>
+        {selectedItem && (
+          <div style={actionPanel}>
+            <div style={actionHeader}>
+              <div>
+                <div style={eyebrow}>Guided action</div>
+                <h3 style={actionTitle}>{selectedItem.text}</h3>
+              </div>
+              <span style={selectedItem.completed ? statusDone : statusOpen}>
+                {selectedItem.completed ? "Completed" : "To do"}
+              </span>
+            </div>
+
+            <p style={actionCopy}>Go to this site and update your address.</p>
+
+            {selectedItem.link && (
+              <a href={selectedItem.link} target="_blank" style={primaryBtn}>
+                Go to site
+              </a>
+            )}
+
+            <div style={infoSection}>
+              <strong>Saved info</strong>
+              <div style={infoGrid}>
+                <span style={infoLabel}>Name</span>
+                <span style={infoValue}>{savedName}</span>
+                <span style={infoLabel}>Email</span>
+                <span style={infoValue}>{email || "Not saved yet"}</span>
+                <span style={infoLabel}>Phone</span>
+                <span style={infoValue}>{phone || "Not saved yet"}</span>
+                <span style={infoLabel}>Address</span>
+                <span style={infoValue}>{savedAddress}</span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => {
+                if (!selectedItem.completed) toggleItem(activeCategory, selectedItem.id);
+              }}
+              style={selectedItem.completed ? secondaryBtn : primaryBtn}
+            >
+              Mark as Completed
+            </button>
+          </div>
+        )}
+
+        <button
+          onClick={() => {
+            setSelectedItemId(null);
+            setView("main");
+          }}
+          style={secondaryBtn}
+        >
+          Back
+        </button>
       </Centered>
     );
   }
@@ -299,6 +373,7 @@ function App() {
         return (
           <button key={cat} style={categoryBtn} onClick={() => {
             setActiveCategory(cat);
+            setSelectedItemId(null);
             setView("category");
           }}>
             {cat} ({done}/{total})
@@ -359,7 +434,17 @@ const row = {
   transition: "border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease, background-color 0.18s ease",
 };
 
+const selectedRow = {
+  ...row,
+  borderColor: "var(--accent-border)",
+  background: "var(--accent-bg)",
+  boxShadow: "var(--shadow-hover)",
+};
+
 const buttonBase = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
   width: "100%",
   padding: "14px 18px",
   border: "1px solid transparent",
@@ -369,6 +454,7 @@ const buttonBase = {
   cursor: "pointer",
   boxSizing: "border-box",
   letterSpacing: 0,
+  textDecoration: "none",
 };
 
 const categoryBtn = {
@@ -424,6 +510,84 @@ const suggestionItem = {
   cursor: "pointer",
   color: "var(--text-h)",
   transition: "background-color 0.18s ease, color 0.18s ease",
+};
+
+const actionPanel = {
+  margin: "20px 0 18px",
+  padding: 20,
+  border: "1px solid var(--accent-border)",
+  borderRadius: 12,
+  background: "linear-gradient(180deg, var(--action-bg), var(--surface))",
+  boxShadow: "var(--shadow-hover)",
+};
+
+const actionHeader = {
+  display: "flex",
+  alignItems: "flex-start",
+  justifyContent: "space-between",
+  gap: 16,
+  marginBottom: 12,
+};
+
+const eyebrow = {
+  color: "var(--accent)",
+  fontSize: 12,
+  fontWeight: 800,
+  letterSpacing: 0.4,
+  textTransform: "uppercase",
+};
+
+const actionTitle = {
+  margin: "2px 0 0",
+  paddingTop: 0,
+  borderTop: "none",
+};
+
+const statusOpen = {
+  padding: "4px 10px",
+  borderRadius: 999,
+  background: "var(--accent-bg)",
+  color: "var(--accent-strong)",
+  fontSize: 12,
+  fontWeight: 800,
+  whiteSpace: "nowrap",
+};
+
+const statusDone = {
+  ...statusOpen,
+  background: "var(--success-bg)",
+  color: "#15803d",
+};
+
+const actionCopy = {
+  marginBottom: 14,
+};
+
+const infoSection = {
+  marginTop: 16,
+  padding: 16,
+  border: "1px solid var(--border)",
+  borderRadius: 12,
+  background: "var(--surface)",
+};
+
+const infoGrid = {
+  display: "grid",
+  gridTemplateColumns: "90px 1fr",
+  gap: "8px 12px",
+  marginTop: 12,
+};
+
+const infoLabel = {
+  color: "var(--text)",
+  fontSize: 14,
+  fontWeight: 700,
+};
+
+const infoValue = {
+  color: "var(--text-h)",
+  fontSize: 14,
+  wordBreak: "break-word",
 };
 
 export default App;
