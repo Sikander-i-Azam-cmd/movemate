@@ -4,6 +4,7 @@ function App() {
   const [view, setView] = useState("main");
   const [activeCategory, setActiveCategory] = useState(null);
   const [selectedItemId, setSelectedItemId] = useState(null);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [newItem, setNewItem] = useState("");
   const [search, setSearch] = useState("");
 
@@ -159,6 +160,9 @@ function App() {
     return all.length ? Math.round((done / all.length) * 100) : 0;
   })();
 
+  const savedName = `${firstName} ${lastName}`.trim();
+  const savedAddress = [street, address2, city, state, zip, country].filter(Boolean).join(", ");
+
   const generateSummaryText = () => {
     let text = "MoveMate Checklist\n\n";
     Object.keys(categories).forEach(cat => {
@@ -219,8 +223,6 @@ function App() {
     const items = categories[activeCategory];
     const existing = items.map(i => i.text.toLowerCase());
     const selectedItem = items.find(i => i.id === selectedItemId);
-    const savedName = `${firstName} ${lastName}`.trim() || "Not saved yet";
-    const savedAddress = [street, address2, city, state, zip, country].filter(Boolean).join(", ") || "Not saved yet";
 
     const suggestions = (masterLists[activeCategory] || []).filter(item =>
       item.name.toLowerCase().includes(newItem.toLowerCase()) &&
@@ -308,9 +310,9 @@ function App() {
                 <span style={infoLabel}>Name</span>
                 <span style={infoValue}>{savedName}</span>
                 <span style={infoLabel}>Email</span>
-                <span style={infoValue}>{email || "Not saved yet"}</span>
+                <span style={infoValue}>{email}</span>
                 <span style={infoLabel}>Phone</span>
-                <span style={infoValue}>{phone || "Not saved yet"}</span>
+                <span style={infoValue}>{phone}</span>
                 <span style={infoLabel}>Address</span>
                 <span style={infoValue}>{savedAddress}</span>
               </div>
@@ -345,25 +347,62 @@ function App() {
     <Centered>
       <h1>MoveMate</h1>
 
-      <input placeholder="First Name" value={firstName} onChange={(e) => setFirstName(e.target.value)} style={input} />
-      <input placeholder="Last Name" value={lastName} onChange={(e) => setLastName(e.target.value)} style={input} />
+      <div style={profileCard}>
+        <div style={profileHeader}>
+          <div>
+            <div style={eyebrow}>User address profile</div>
+            <h2 style={profileTitle}>Your Move Profile</h2>
+          </div>
+          <button onClick={() => setIsEditingProfile(!isEditingProfile)} style={editBtn}>
+            {isEditingProfile ? "Done" : "Edit"}
+          </button>
+        </div>
 
-      <input placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} style={input} />
-      <input placeholder="Phone" value={phone} onChange={(e) => setPhone(e.target.value)} style={input} />
+        {!isEditingProfile && (
+          <div style={profileGrid}>
+            <div style={profileItem}>
+              <span style={infoLabel}>Full name</span>
+              <strong style={profileValue}>{savedName}</strong>
+            </div>
+            <div style={profileItem}>
+              <span style={infoLabel}>Email</span>
+              <strong style={profileValue}>{email}</strong>
+            </div>
+            <div style={profileItem}>
+              <span style={infoLabel}>Phone</span>
+              <strong style={profileValue}>{phone}</strong>
+            </div>
+            <div style={profileItemWide}>
+              <span style={infoLabel}>Full address</span>
+              <strong style={profileValue}>{savedAddress}</strong>
+            </div>
+          </div>
+        )}
 
-      <h3>New Address</h3>
+        {isEditingProfile && (
+          <div style={profileForm}>
+            <input placeholder="First Name" value={firstName} onChange={(e) => setFirstName(e.target.value)} style={input} />
+            <input placeholder="Last Name" value={lastName} onChange={(e) => setLastName(e.target.value)} style={input} />
 
-      <input placeholder="Street Address" value={street} onChange={(e) => setStreet(e.target.value)} style={input} />
-      <input placeholder="Address Line 2" value={address2} onChange={(e) => setAddress2(e.target.value)} style={input} />
+            <input placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} style={input} />
+            <input placeholder="Phone" value={phone} onChange={(e) => setPhone(e.target.value)} style={input} />
 
-      <div style={{ display: "flex", gap: 14 }}>
-        <input placeholder="City" value={city} onChange={(e) => setCity(e.target.value)} style={input} />
-        <input placeholder="State" value={state} onChange={(e) => setState(e.target.value)} style={input} />
-      </div>
+            <h3>New Address</h3>
 
-      <div style={{ display: "flex", gap: 14 }}>
-        <input placeholder="Zip" value={zip} onChange={(e) => setZip(e.target.value)} style={input} />
-        <input placeholder="Country" value={country} onChange={(e) => setCountry(e.target.value)} style={input} />
+            <input placeholder="Street Address" value={street} onChange={(e) => setStreet(e.target.value)} style={input} />
+            <input placeholder="Address Line 2" value={address2} onChange={(e) => setAddress2(e.target.value)} style={input} />
+
+            <div style={{ display: "flex", gap: 14 }}>
+              <input placeholder="City" value={city} onChange={(e) => setCity(e.target.value)} style={input} />
+              <input placeholder="State" value={state} onChange={(e) => setState(e.target.value)} style={input} />
+            </div>
+
+            <div style={{ display: "flex", gap: 14 }}>
+              <input placeholder="Zip" value={zip} onChange={(e) => setZip(e.target.value)} style={input} />
+              <input placeholder="Country" value={country} onChange={(e) => setCountry(e.target.value)} style={input} />
+            </div>
+          </div>
+        )}
       </div>
 
       <p>Progress: {progress}%</p>
@@ -588,6 +627,66 @@ const infoValue = {
   color: "var(--text-h)",
   fontSize: 14,
   wordBreak: "break-word",
+};
+
+const profileCard = {
+  marginBottom: 28,
+  padding: 22,
+  border: "1px solid var(--accent-border)",
+  borderRadius: 12,
+  background: "linear-gradient(180deg, var(--action-bg), var(--surface))",
+  boxShadow: "var(--shadow-hover)",
+};
+
+const profileHeader = {
+  display: "flex",
+  alignItems: "flex-start",
+  justifyContent: "space-between",
+  gap: 16,
+  marginBottom: 18,
+};
+
+const profileTitle = {
+  margin: "2px 0 0",
+  fontSize: 26,
+};
+
+const editBtn = {
+  ...secondaryBtn,
+  width: "auto",
+  minWidth: 82,
+  marginTop: 0,
+  padding: "10px 14px",
+};
+
+const profileGrid = {
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr",
+  gap: 12,
+};
+
+const profileItem = {
+  padding: 14,
+  border: "1px solid var(--border)",
+  borderRadius: 12,
+  background: "var(--surface)",
+  boxShadow: "var(--shadow-subtle)",
+};
+
+const profileItemWide = {
+  ...profileItem,
+  gridColumn: "1 / -1",
+};
+
+const profileValue = {
+  display: "block",
+  marginTop: 4,
+  lineHeight: "140%",
+  wordBreak: "break-word",
+};
+
+const profileForm = {
+  paddingTop: 4,
 };
 
 export default App;
