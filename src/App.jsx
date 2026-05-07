@@ -38,12 +38,36 @@ function App() {
     Banks: [
       { id: 1, text: "Chase", link: "https://www.chase.com", status: "not_started" },
       { id: 2, text: "Bank of America", link: "https://www.bankofamerica.com", status: "not_started" },
+      { id: 3, text: "Wells Fargo", link: "https://www.wellsfargo.com", status: "not_started" },
     ],
-    "Delivery Apps": [
-      { id: 3, text: "Uber Eats", link: "https://www.ubereats.com", status: "not_started" },
+    "Credit Cards": [
+      { id: 4, text: "Capital One", link: "https://www.capitalone.com", status: "not_started" },
+      { id: 5, text: "American Express", link: "https://www.americanexpress.com", status: "not_started" },
+    ],
+    Insurance: [
+      { id: 6, text: "State Farm", link: "https://www.statefarm.com", status: "not_started" },
+    ],
+    Utilities: [
+      { id: 7, text: "Electric / Gas Provider", link: "https://www.google.com/search?q=electric+gas+provider+change+address", status: "not_started" },
     ],
     Subscriptions: [
-      { id: 4, text: "Netflix", link: "https://www.netflix.com", status: "not_started" },
+      { id: 8, text: "Netflix", link: "https://www.netflix.com", status: "not_started" },
+      { id: 9, text: "Spotify", link: "https://www.spotify.com", status: "not_started" },
+    ],
+    "Delivery Apps": [
+      { id: 10, text: "Uber Eats", link: "https://www.ubereats.com", status: "not_started" },
+    ],
+    "Shopping / Ecommerce": [
+      { id: 11, text: "Amazon", link: "https://www.amazon.com", status: "not_started" },
+    ],
+    "Government / DMV": [
+      { id: 12, text: "DMV", link: "https://www.usa.gov/motor-vehicle-services", status: "not_started" },
+    ],
+    Healthcare: [
+      { id: 13, text: "Health Insurance Provider", link: "https://www.google.com/search?q=health+insurance+provider+change+address", status: "not_started" },
+    ],
+    "Work / Payroll": [
+      { id: 14, text: "Employer Payroll", link: "https://www.google.com/search?q=employer+payroll+change+address", status: "not_started" },
     ],
   };
 
