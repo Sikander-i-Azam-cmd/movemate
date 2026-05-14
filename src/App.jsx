@@ -166,6 +166,11 @@ function App() {
     return estimates[cat] || "5-10 min";
   };
 
+  const getSavedTimeEstimate = (cat) => {
+    const higherImpactCategories = ["Government / DMV", "Insurance"];
+    return higherImpactCategories.includes(cat) ? 6 : 3;
+  };
+
   const getHelperText = (cat, name) => {
     const helpers = {
       Banks: `Updating ${name} helps make sure statements, replacement cards, and account notices reach your new address.`,
@@ -243,6 +248,43 @@ function App() {
     const all = Object.values(categories).flat();
     const done = all.filter(i => getItemStatus(i) === "completed").length;
     return all.length ? Math.round((done / all.length) * 100) : 0;
+  })();
+
+  const progressStats = (() => {
+    const categoryEntries = Object.entries(categories);
+    const all = categoryEntries.flatMap(([, items]) => items);
+    const completedCount = all.filter(i => getItemStatus(i) === "completed").length;
+    const remainingCount = all.length - completedCount;
+    const estimatedTimeSaved = categoryEntries.reduce((total, [cat, items]) => {
+      const completedItems = items.filter(i => getItemStatus(i) === "completed").length;
+      return total + completedItems * getSavedTimeEstimate(cat);
+    }, 0);
+
+    return {
+      completedCount,
+      remainingCount,
+      estimatedTimeSaved,
+    };
+  })();
+
+  const progressMessage = (() => {
+    if (progressStats.completedCount === 0) {
+      return "Start with one quick update to build momentum.";
+    }
+
+    if (progress === 100) {
+      return "All set. Your move updates are complete.";
+    }
+
+    if (progress >= 70) {
+      return "You're in the home stretch. A few important updates remain.";
+    }
+
+    if (progress >= 35) {
+      return "Nice progress. Your most important accounts are getting aligned.";
+    }
+
+    return "Every completed update reduces missed mail and account friction.";
   })();
 
   const savedName = `${firstName} ${lastName}`.trim();
@@ -529,6 +571,41 @@ function App() {
       </div>
 
       <p>Progress: {progress}%</p>
+
+      <div style={progressCard}>
+        <div style={progressHeader}>
+          <div>
+            <div style={eyebrow}>Move progress</div>
+            <h2 style={progressTitle}>{progress}% complete</h2>
+          </div>
+          <span style={progressBadge}>{progressStats.completedCount} done</span>
+        </div>
+
+        <p style={progressCopy}>{progressMessage}</p>
+
+        <div style={progressBarTrack}>
+          <div style={{ ...progressBarFill, width: `${progress}%` }} />
+        </div>
+
+        <div style={progressStatsGrid}>
+          <div style={progressStatItem}>
+            <span style={infoLabel}>Completed updates</span>
+            <strong style={progressStatValue}>
+              You've completed {progressStats.completedCount} {progressStats.completedCount === 1 ? "update" : "updates"}
+            </strong>
+          </div>
+          <div style={progressStatItem}>
+            <span style={infoLabel}>Estimated time saved</span>
+            <strong style={progressStatValue}>{progressStats.estimatedTimeSaved} minutes</strong>
+          </div>
+          <div style={progressStatItemWide}>
+            <span style={infoLabel}>Remaining important accounts</span>
+            <strong style={progressStatValue}>
+              {progressStats.remainingCount} important {progressStats.remainingCount === 1 ? "account" : "accounts"} remaining
+            </strong>
+          </div>
+        </div>
+      </div>
 
       {Object.keys(categories).map(cat => {
         const { total, done } = getCategoryProgress(cat);
@@ -909,6 +986,86 @@ const profileValue = {
 
 const profileForm = {
   paddingTop: 4,
+};
+
+const progressCard = {
+  margin: "0 0 24px",
+  padding: 22,
+  border: "1px solid var(--accent-border)",
+  borderRadius: 12,
+  background: "linear-gradient(180deg, var(--action-bg), var(--surface))",
+  boxShadow: "var(--shadow-hover)",
+};
+
+const progressHeader = {
+  display: "flex",
+  alignItems: "flex-start",
+  justifyContent: "space-between",
+  gap: 16,
+  marginBottom: 10,
+};
+
+const progressTitle = {
+  margin: "2px 0 0",
+  fontSize: 28,
+};
+
+const progressBadge = {
+  padding: "6px 10px",
+  borderRadius: 999,
+  background: "var(--success-bg)",
+  color: "#15803d",
+  fontSize: 12,
+  fontWeight: 800,
+  whiteSpace: "nowrap",
+};
+
+const progressCopy = {
+  marginBottom: 14,
+  fontSize: 15,
+};
+
+const progressBarTrack = {
+  width: "100%",
+  height: 10,
+  marginBottom: 16,
+  overflow: "hidden",
+  borderRadius: 999,
+  background: "var(--secondary-bg)",
+  border: "1px solid var(--border)",
+};
+
+const progressBarFill = {
+  height: "100%",
+  borderRadius: 999,
+  background: "var(--accent)",
+  transition: "width 0.24s ease",
+};
+
+const progressStatsGrid = {
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr",
+  gap: 12,
+};
+
+const progressStatItem = {
+  padding: 14,
+  border: "1px solid var(--border)",
+  borderRadius: 12,
+  background: "var(--surface)",
+  boxShadow: "var(--shadow-subtle)",
+};
+
+const progressStatItemWide = {
+  ...progressStatItem,
+  gridColumn: "1 / -1",
+};
+
+const progressStatValue = {
+  display: "block",
+  marginTop: 4,
+  color: "var(--text-h)",
+  lineHeight: "135%",
 };
 
 export default App;
