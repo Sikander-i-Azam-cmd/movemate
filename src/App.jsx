@@ -7,6 +7,7 @@ function App() {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [newItem, setNewItem] = useState("");
   const [search, setSearch] = useState("");
+  const [copiedKey, setCopiedKey] = useState("");
 
   // ---------------- USER INFO ----------------
   const [firstName, setFirstName] = useState(() => localStorage.getItem("mm-first") || "");
@@ -375,6 +376,21 @@ function App() {
 
   const savedName = `${firstName} ${lastName}`.trim();
   const savedAddress = [street, address2, city, state, zip, country].filter(Boolean).join(", ");
+  const fullProfileText = [
+    savedName && `Name: ${savedName}`,
+    email && `Email: ${email}`,
+    phone && `Phone: ${phone}`,
+    savedAddress && `Address: ${savedAddress}`,
+  ].filter(Boolean).join("\n");
+
+  const copyText = (key, text) => {
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    setCopiedKey(key);
+    window.setTimeout(() => {
+      setCopiedKey(currentKey => currentKey === key ? "" : currentKey);
+    }, 1400);
+  };
 
   const generateSummaryText = () => {
     let text = "MoveMate Checklist\n\n";
@@ -555,6 +571,21 @@ function App() {
                   <span style={infoLabel}>Address</span>
                   <span style={infoValue}>{savedAddress || "Not added yet"}</span>
                 </div>
+
+                <div style={quickCopySectionCompact}>
+                  <button onClick={() => copyText("detail-address", savedAddress)} style={copiedKey === "detail-address" ? copyBtnDone : copyBtn}>
+                    {copiedKey === "detail-address" ? "Copied!" : "Copy Full Address"}
+                  </button>
+                  <button onClick={() => copyText("detail-email", email)} style={copiedKey === "detail-email" ? copyBtnDone : copyBtn}>
+                    {copiedKey === "detail-email" ? "Copied!" : "Copy Email"}
+                  </button>
+                  <button onClick={() => copyText("detail-phone", phone)} style={copiedKey === "detail-phone" ? copyBtnDone : copyBtn}>
+                    {copiedKey === "detail-phone" ? "Copied!" : "Copy Phone"}
+                  </button>
+                  <button onClick={() => copyText("detail-full", fullProfileText)} style={copiedKey === "detail-full" ? copyBtnDone : copyBtn}>
+                    {copiedKey === "detail-full" ? "Copied!" : "Copy Full Profile"}
+                  </button>
+                </div>
               </div>
 
               <div style={modalActions}>
@@ -627,6 +658,23 @@ function App() {
               <span style={infoLabel}>Full address</span>
               <strong style={profileValue}>{savedAddress}</strong>
             </div>
+          </div>
+        )}
+
+        {!isEditingProfile && (
+          <div style={quickCopySection}>
+            <button onClick={() => copyText("profile-address", savedAddress)} style={copiedKey === "profile-address" ? copyBtnDone : copyBtn}>
+              {copiedKey === "profile-address" ? "Copied!" : "Copy Full Address"}
+            </button>
+            <button onClick={() => copyText("profile-email", email)} style={copiedKey === "profile-email" ? copyBtnDone : copyBtn}>
+              {copiedKey === "profile-email" ? "Copied!" : "Copy Email"}
+            </button>
+            <button onClick={() => copyText("profile-phone", phone)} style={copiedKey === "profile-phone" ? copyBtnDone : copyBtn}>
+              {copiedKey === "profile-phone" ? "Copied!" : "Copy Phone"}
+            </button>
+            <button onClick={() => copyText("profile-full", fullProfileText)} style={copiedKey === "profile-full" ? copyBtnDone : copyBtn}>
+              {copiedKey === "profile-full" ? "Copied!" : "Copy Full Profile"}
+            </button>
           </div>
         )}
 
@@ -1103,6 +1151,36 @@ const profileValue = {
 
 const profileForm = {
   paddingTop: 4,
+};
+
+const quickCopySection = {
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr",
+  gap: 10,
+  marginTop: 14,
+};
+
+const quickCopySectionCompact = {
+  ...quickCopySection,
+  marginTop: 14,
+};
+
+const copyBtn = {
+  ...buttonBase,
+  minHeight: 42,
+  padding: "10px 12px",
+  marginTop: 0,
+  borderColor: "var(--border)",
+  background: "var(--secondary-bg)",
+  color: "var(--text-h)",
+  fontSize: 14,
+};
+
+const copyBtnDone = {
+  ...copyBtn,
+  borderColor: "var(--success-border)",
+  background: "var(--success-bg)",
+  color: "#15803d",
 };
 
 const progressCard = {
