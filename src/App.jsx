@@ -287,6 +287,92 @@ function App() {
     return "Every completed update reduces missed mail and account friction.";
   })();
 
+  const recommendedNextSteps = (() => {
+    const priorityOrder = [
+      "Government / DMV",
+      "Utilities",
+      "Banks",
+      "Credit Cards",
+      "Insurance",
+      "Healthcare",
+      "Work / Payroll",
+      "Shopping / Ecommerce",
+      "Delivery Apps",
+      "Subscriptions",
+    ];
+
+    const categorySummaries = Object.entries(categories)
+      .map(([cat, items]) => {
+        const remaining = items.filter(i => getItemStatus(i) !== "completed");
+        return {
+          cat,
+          remaining,
+          remainingCount: remaining.length,
+          priority: priorityOrder.indexOf(cat) === -1 ? priorityOrder.length : priorityOrder.indexOf(cat),
+        };
+      })
+      .filter(summary => summary.remainingCount > 0)
+      .sort((a, b) => a.priority - b.priority || b.remainingCount - a.remainingCount);
+
+    const recommendations = [];
+    const addRecommendation = (cat, title, description) => {
+      if (recommendations.some(item => item.cat === cat) || recommendations.length >= 3) return;
+      recommendations.push({ cat, title, description });
+    };
+
+    const government = categorySummaries.find(item => item.cat === "Government / DMV");
+    if (government) {
+      addRecommendation(
+        government.cat,
+        "Update DMV next",
+        "Government records are often required for IDs, registration, and official mail."
+      );
+    }
+
+    const utilities = categorySummaries.find(item => item.cat === "Utilities");
+    if (utilities) {
+      addRecommendation(
+        utilities.cat,
+        "Utilities are commonly forgotten",
+        "Handle service providers early to avoid missed notices or billing confusion."
+      );
+    }
+
+    const financialRemaining = ["Banks", "Credit Cards"].reduce((total, cat) => {
+      const items = categories[cat] || [];
+      return total + items.filter(i => getItemStatus(i) !== "completed").length;
+    }, 0);
+    const firstFinancialCategory = categorySummaries.find(item => ["Banks", "Credit Cards"].includes(item.cat));
+
+    if (financialRemaining > 0 && firstFinancialCategory) {
+      addRecommendation(
+        firstFinancialCategory.cat,
+        `You still have ${financialRemaining} financial ${financialRemaining === 1 ? "account" : "accounts"} remaining`,
+        "Banks and cards are high-impact updates because they affect statements, cards, and verification."
+      );
+    }
+
+    categorySummaries.forEach(({ cat, remainingCount }) => {
+      addRecommendation(
+        cat,
+        `${cat} has ${remainingCount} ${remainingCount === 1 ? "task" : "tasks"} left`,
+        "This category has the most remaining work and is a good next focus."
+      );
+    });
+
+    if (!recommendations.length) {
+      return [
+        {
+          cat: null,
+          title: "Everything is complete",
+          description: "Your checklist is wrapped up. You can download or copy your summary anytime.",
+        },
+      ];
+    }
+
+    return recommendations.slice(0, 3);
+  })();
+
   const savedName = `${firstName} ${lastName}`.trim();
   const savedAddress = [street, address2, city, state, zip, country].filter(Boolean).join(", ");
 
@@ -604,6 +690,37 @@ function App() {
               {progressStats.remainingCount} important {progressStats.remainingCount === 1 ? "account" : "accounts"} remaining
             </strong>
           </div>
+        </div>
+      </div>
+
+      <div style={recommendationCard}>
+        <div style={recommendationHeader}>
+          <div>
+            <div style={eyebrow}>Recommended next steps</div>
+            <h2 style={recommendationTitle}>Focus your next update</h2>
+          </div>
+          <span style={recommendationBadge}>{recommendedNextSteps.length}</span>
+        </div>
+
+        <div style={recommendationList}>
+          {recommendedNextSteps.map((item, index) => (
+            <button
+              key={`${item.cat || "complete"}-${item.title}`}
+              onClick={() => {
+                if (!item.cat) return;
+                setActiveCategory(item.cat);
+                setSelectedItemId(null);
+                setView("category");
+              }}
+              style={item.cat ? recommendationItem : recommendationItemStatic}
+            >
+              <span style={recommendationIcon}>{index + 1}</span>
+              <span style={recommendationText}>
+                <strong style={recommendationItemTitle}>{item.title}</strong>
+                <span style={recommendationDescription}>{item.description}</span>
+              </span>
+            </button>
+          ))}
         </div>
       </div>
 
@@ -1066,6 +1183,95 @@ const progressStatValue = {
   marginTop: 4,
   color: "var(--text-h)",
   lineHeight: "135%",
+};
+
+const recommendationCard = {
+  margin: "0 0 24px",
+  padding: 22,
+  border: "1px solid var(--border)",
+  borderRadius: 12,
+  background: "var(--surface)",
+  boxShadow: "var(--shadow-hover)",
+};
+
+const recommendationHeader = {
+  display: "flex",
+  alignItems: "flex-start",
+  justifyContent: "space-between",
+  gap: 16,
+  marginBottom: 14,
+};
+
+const recommendationTitle = {
+  margin: "2px 0 0",
+  fontSize: 24,
+};
+
+const recommendationBadge = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: 34,
+  height: 34,
+  borderRadius: 999,
+  background: "var(--accent-bg)",
+  color: "var(--accent-strong)",
+  fontSize: 14,
+  fontWeight: 900,
+  flex: "0 0 auto",
+};
+
+const recommendationList = {
+  display: "grid",
+  gap: 10,
+};
+
+const recommendationItem = {
+  ...buttonBase,
+  width: "100%",
+  justifyContent: "flex-start",
+  gap: 12,
+  marginTop: 0,
+  padding: 14,
+  borderColor: "var(--border)",
+  background: "var(--row-bg)",
+  color: "var(--text-h)",
+  textAlign: "left",
+};
+
+const recommendationItemStatic = {
+  ...recommendationItem,
+  cursor: "default",
+};
+
+const recommendationIcon = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: 30,
+  height: 30,
+  borderRadius: 10,
+  background: "var(--accent-bg)",
+  color: "var(--accent-strong)",
+  fontSize: 13,
+  fontWeight: 900,
+  flex: "0 0 auto",
+};
+
+const recommendationText = {
+  display: "grid",
+  gap: 2,
+};
+
+const recommendationItemTitle = {
+  color: "var(--text-h)",
+  lineHeight: "130%",
+};
+
+const recommendationDescription = {
+  color: "var(--text)",
+  fontSize: 14,
+  lineHeight: "140%",
 };
 
 export default App;
