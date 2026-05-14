@@ -143,6 +143,53 @@ function App() {
 
   const getItemStatus = (item) => item.status || (item.completed ? "completed" : "not_started");
 
+  const getStatusLabel = (status) => {
+    if (status === "completed") return "Completed";
+    if (status === "in_progress") return "In progress";
+    return "Not started";
+  };
+
+  const getEstimatedTime = (cat) => {
+    const estimates = {
+      Banks: "5-8 min",
+      "Credit Cards": "4-7 min",
+      Insurance: "8-12 min",
+      Utilities: "10-15 min",
+      Subscriptions: "2-4 min",
+      "Delivery Apps": "2-4 min",
+      "Shopping / Ecommerce": "3-5 min",
+      "Government / DMV": "10-20 min",
+      Healthcare: "8-12 min",
+      "Work / Payroll": "5-10 min",
+    };
+
+    return estimates[cat] || "5-10 min";
+  };
+
+  const getHelperText = (cat, name) => {
+    const helpers = {
+      Banks: `Updating ${name} helps make sure statements, replacement cards, and account notices reach your new address.`,
+      "Credit Cards": `Keeping ${name} current helps prevent missed billing notices, card deliveries, and account verification issues.`,
+      Insurance: `Your insurer needs the right address so policy documents, renewal notices, and coverage records stay accurate.`,
+      Utilities: `Updating this provider helps avoid service interruptions, final bill confusion, or missed account notices.`,
+      Subscriptions: `A current address keeps billing, deliveries, and account verification smooth after your move.`,
+      "Delivery Apps": `Update ${name} so deliveries, saved addresses, and checkout defaults point to the right place.`,
+      "Shopping / Ecommerce": `Keeping ${name} updated helps prevent packages from being sent to your old address.`,
+      "Government / DMV": `Government records often drive mail, registration, and ID requirements, so this one is worth handling carefully.`,
+      Healthcare: `A current address helps benefits, claims, provider records, and important health mail stay aligned.`,
+      "Work / Payroll": `Payroll and HR need your current address for tax documents, benefits, and official employment records.`,
+    };
+
+    return helpers[cat] || `Updating ${name} helps important account notices and saved address details follow you to the right place.`;
+  };
+
+  const closeDetailPanel = () => setSelectedItemId(null);
+
+  const openUpdatePage = (link) => {
+    if (!link) return;
+    window.open(link, "_blank", "noopener,noreferrer");
+  };
+
   const updateItemStatus = (cat, id, status) => {
     setCategories({
       ...categories,
@@ -323,6 +370,7 @@ function App() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
+                      if (selectedItemId === item.id) closeDetailPanel();
                       deleteItem(activeCategory, item.id);
                     }}
                     style={dangerBtn}
@@ -335,47 +383,72 @@ function App() {
           })}
 
         {selectedItem && (
-          <div style={actionPanel}>
-            <div style={actionHeader}>
-              <div>
-                <div style={eyebrow}>Guided action</div>
-                <h3 style={actionTitle}>{selectedItem.text}</h3>
+          <div style={modalOverlay} onClick={closeDetailPanel}>
+            <div style={detailModal} onClick={(e) => e.stopPropagation()}>
+              <div style={actionHeader}>
+                <div>
+                  <div style={eyebrow}>Guided action</div>
+                  <h3 style={actionTitle}>{selectedItem.text}</h3>
+                </div>
+                <span style={selectedStatus === "completed" ? statusDone : selectedStatus === "in_progress" ? statusProgress : statusOpen}>
+                  {getStatusLabel(selectedStatus)}
+                </span>
               </div>
-              <span style={selectedStatus === "completed" ? statusDone : selectedStatus === "in_progress" ? statusProgress : statusOpen}>
-                {selectedStatus === "completed" ? "Completed" : selectedStatus === "in_progress" ? "In progress" : "Not started"}
-              </span>
-            </div>
 
-            <p style={actionCopy}>Go to this site and update your address.</p>
+              <p style={actionCopy}>{getHelperText(activeCategory, selectedItem.text)}</p>
 
-            {selectedItem.link && (
-              <a href={selectedItem.link} target="_blank" style={primaryBtn}>
-                Go to site
-              </a>
-            )}
+              <div style={detailGrid}>
+                <div style={detailStat}>
+                  <span style={infoLabel}>Status</span>
+                  <strong style={detailValue}>{getStatusLabel(selectedStatus)}</strong>
+                </div>
+                <div style={detailStat}>
+                  <span style={infoLabel}>Estimated time</span>
+                  <strong style={detailValue}>{getEstimatedTime(activeCategory)}</strong>
+                </div>
+              </div>
 
-            <div style={infoSection}>
-              <strong>Saved info</strong>
-              <div style={infoGrid}>
-                <span style={infoLabel}>Name</span>
-                <span style={infoValue}>{savedName}</span>
-                <span style={infoLabel}>Email</span>
-                <span style={infoValue}>{email}</span>
-                <span style={infoLabel}>Phone</span>
-                <span style={infoValue}>{phone}</span>
-                <span style={infoLabel}>Address</span>
-                <span style={infoValue}>{savedAddress}</span>
+              <div style={linkCard}>
+                <span style={infoLabel}>Direct update link</span>
+                <a href={selectedItem.link} target="_blank" rel="noreferrer" style={detailLink}>
+                  {selectedItem.link}
+                </a>
+              </div>
+
+              <div style={infoSection}>
+                <strong>Saved info</strong>
+                <div style={infoGrid}>
+                  <span style={infoLabel}>Name</span>
+                  <span style={infoValue}>{savedName || "Not added yet"}</span>
+                  <span style={infoLabel}>Email</span>
+                  <span style={infoValue}>{email || "Not added yet"}</span>
+                  <span style={infoLabel}>Phone</span>
+                  <span style={infoValue}>{phone || "Not added yet"}</span>
+                  <span style={infoLabel}>Address</span>
+                  <span style={infoValue}>{savedAddress || "Not added yet"}</span>
+                </div>
+              </div>
+
+              <div style={modalActions}>
+                <button
+                  onClick={() => openUpdatePage(selectedItem.link)}
+                  style={primaryBtn}
+                >
+                  Open Update Page
+                </button>
+                <button
+                  onClick={() => {
+                    updateItemStatus(activeCategory, selectedItem.id, "completed");
+                  }}
+                  style={selectedStatus === "completed" ? secondaryBtn : primaryBtn}
+                >
+                  Mark Completed
+                </button>
+                <button onClick={closeDetailPanel} style={secondaryBtn}>
+                  Close
+                </button>
               </div>
             </div>
-
-            <button
-              onClick={() => {
-                updateItemStatus(activeCategory, selectedItem.id, "completed");
-              }}
-              style={selectedStatus === "completed" ? secondaryBtn : primaryBtn}
-            >
-              Mark as Completed
-            </button>
           </div>
         )}
 
@@ -635,13 +708,27 @@ const suggestionItem = {
   transition: "background-color 0.18s ease, color 0.18s ease",
 };
 
-const actionPanel = {
-  margin: "20px 0 18px",
+const modalOverlay = {
+  position: "fixed",
+  inset: 0,
+  zIndex: 20,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
   padding: 20,
+  background: "rgba(15, 23, 42, 0.48)",
+  backdropFilter: "blur(8px)",
+};
+
+const detailModal = {
+  width: "min(100%, 540px)",
+  maxHeight: "calc(100svh - 40px)",
+  overflowY: "auto",
+  padding: 24,
   border: "1px solid var(--accent-border)",
   borderRadius: 12,
-  background: "linear-gradient(180deg, var(--action-bg), var(--surface))",
-  boxShadow: "var(--shadow-hover)",
+  background: "linear-gradient(180deg, var(--action-bg), var(--surface) 42%)",
+  boxShadow: "0 28px 80px rgba(15, 23, 42, 0.28)",
 };
 
 const actionHeader = {
@@ -689,7 +776,8 @@ const statusDone = {
 };
 
 const actionCopy = {
-  marginBottom: 14,
+  marginBottom: 18,
+  fontSize: 15,
 };
 
 const infoSection = {
@@ -698,6 +786,50 @@ const infoSection = {
   border: "1px solid var(--border)",
   borderRadius: 12,
   background: "var(--surface)",
+};
+
+const detailGrid = {
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr",
+  gap: 12,
+  marginBottom: 12,
+};
+
+const detailStat = {
+  padding: 14,
+  border: "1px solid var(--border)",
+  borderRadius: 12,
+  background: "var(--surface)",
+  boxShadow: "var(--shadow-subtle)",
+};
+
+const detailValue = {
+  display: "block",
+  marginTop: 4,
+  color: "var(--text-h)",
+};
+
+const linkCard = {
+  display: "grid",
+  gap: 6,
+  padding: 14,
+  border: "1px solid var(--border)",
+  borderRadius: 12,
+  background: "var(--surface)",
+  boxShadow: "var(--shadow-subtle)",
+};
+
+const detailLink = {
+  display: "block",
+  maxWidth: "100%",
+  overflowWrap: "anywhere",
+  fontSize: 14,
+};
+
+const modalActions = {
+  display: "grid",
+  gap: 10,
+  marginTop: 18,
 };
 
 const infoGrid = {
