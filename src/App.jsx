@@ -134,13 +134,71 @@ function App() {
       ])
     );
 
+  const onboardingSteps = ["Welcome", "Personal Info", "New Address", "Accounts", "Ready"];
+  const onboardingCategoryOptions = [
+    { key: "Banks", label: "Banks", description: "Checking, savings, and brokerage accounts" },
+    { key: "Credit Cards", label: "Credit Cards", description: "Cards, statements, and billing addresses" },
+    { key: "Utilities", label: "Utilities", description: "Electric, gas, water, and internet providers" },
+    { key: "Government / DMV", label: "Government", description: "DMV, registration, and official records" },
+    { key: "Shopping / Ecommerce", label: "Shopping", description: "Retail accounts and delivery addresses" },
+    { key: "Subscriptions", label: "Subscriptions", description: "Streaming, memberships, and recurring services" },
+    { key: "Delivery Apps", label: "Delivery Apps", description: "Food, grocery, and local delivery defaults" },
+    { key: "Insurance", label: "Insurance", description: "Policy records and renewal notices" },
+    { key: "Healthcare", label: "Healthcare", description: "Benefits, claims, and provider records" },
+    { key: "Work / Payroll", label: "Work / Payroll", description: "HR, benefits, and tax documents" },
+  ];
+
+  const hasExistingMoveMateData = () =>
+    localStorage.getItem("movemate-categories") ||
+    localStorage.getItem("mm-first") ||
+    localStorage.getItem("mm-last") ||
+    localStorage.getItem("mm-email") ||
+    localStorage.getItem("mm-phone") ||
+    localStorage.getItem("mm-street");
+
   const [categories, setCategories] = useState(() => {
-    return defaultCategories;
+    const savedCategories = localStorage.getItem("movemate-categories");
+    if (!savedCategories) return defaultCategories;
+
+    try {
+      return mergeCategories(defaultCategories, JSON.parse(savedCategories));
+    } catch {
+      return defaultCategories;
+    }
+  });
+
+  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(() => {
+    const completedOnboarding = localStorage.getItem("movemate-onboarding-complete") === "true";
+    const startedOnboarding = localStorage.getItem("movemate-onboarding-step") || localStorage.getItem("movemate-onboarding-categories");
+    return completedOnboarding || (!startedOnboarding && Boolean(hasExistingMoveMateData()));
+  });
+  const [onboardingStep, setOnboardingStep] = useState(() => {
+    const savedStep = Number(localStorage.getItem("movemate-onboarding-step"));
+    return Number.isInteger(savedStep) && savedStep >= 0 && savedStep < onboardingSteps.length ? savedStep : 0;
+  });
+  const [selectedOnboardingCategories, setSelectedOnboardingCategories] = useState(() => {
+    const savedSelection = localStorage.getItem("movemate-onboarding-categories");
+    if (!savedSelection) return onboardingCategoryOptions.map(option => option.key);
+
+    try {
+      const parsed = JSON.parse(savedSelection);
+      return Array.isArray(parsed) && parsed.length ? parsed : onboardingCategoryOptions.map(option => option.key);
+    } catch {
+      return onboardingCategoryOptions.map(option => option.key);
+    }
   });
 
   useEffect(() => {
     localStorage.setItem("movemate-categories", JSON.stringify(categories));
   }, [categories]);
+
+  useEffect(() => {
+    localStorage.setItem("movemate-onboarding-step", String(onboardingStep));
+  }, [onboardingStep]);
+
+  useEffect(() => {
+    localStorage.setItem("movemate-onboarding-categories", JSON.stringify(selectedOnboardingCategories));
+  }, [selectedOnboardingCategories]);
 
   const getItemStatus = (item) => item.status || (item.completed ? "completed" : "not_started");
 
@@ -225,12 +283,13 @@ function App() {
     if (!name.trim()) return;
 
     const finalLink = link || findLink(name);
+    const nextId = Math.max(0, ...Object.values(categories).flat().map(item => Number(item.id) || 0)) + 1;
 
     setCategories({
       ...categories,
       [activeCategory]: [
         ...categories[activeCategory],
-        { id: Date.now(), text: name, link: finalLink, status: "not_started" },
+        { id: nextId, text: name, link: finalLink, status: "not_started" },
       ],
     });
 
@@ -418,6 +477,185 @@ function App() {
     navigator.clipboard.writeText(generateSummaryText());
     alert("Checklist copied!");
   };
+
+  const goToNextOnboardingStep = () => {
+    setOnboardingStep(step => Math.min(step + 1, onboardingSteps.length - 1));
+  };
+
+  const goToPreviousOnboardingStep = () => {
+    setOnboardingStep(step => Math.max(step - 1, 0));
+  };
+
+  const toggleOnboardingCategory = (cat) => {
+    setSelectedOnboardingCategories(selected => (
+      selected.includes(cat)
+        ? selected.filter(item => item !== cat)
+        : [...selected, cat]
+    ));
+  };
+
+  const completeOnboarding = () => {
+    const selectedCategories = selectedOnboardingCategories.length
+      ? selectedOnboardingCategories
+      : onboardingCategoryOptions.map(option => option.key);
+
+    const personalizedCategories = Object.fromEntries(
+      Object.entries(defaultCategories).filter(([cat]) => selectedCategories.includes(cat))
+    );
+
+    setCategories(personalizedCategories);
+    setView("main");
+    setOnboardingStep(onboardingSteps.length - 1);
+    setHasCompletedOnboarding(true);
+    localStorage.setItem("movemate-onboarding-complete", "true");
+    localStorage.setItem("movemate-onboarding-step", String(onboardingSteps.length - 1));
+  };
+
+  const onboardingProgress = Math.round(((onboardingStep + 1) / onboardingSteps.length) * 100);
+
+  if (!hasCompletedOnboarding) {
+    const isAccountStep = onboardingStep === 3;
+    const canContinue = !isAccountStep || selectedOnboardingCategories.length > 0;
+
+    return (
+      <OnboardingShell>
+        <div style={wizardTopline}>
+          <span style={eyebrow}>MoveMate setup</span>
+          <span style={wizardStepCount}>Step {onboardingStep + 1} of {onboardingSteps.length}</span>
+        </div>
+
+        <div style={wizardProgressTrack}>
+          <div style={{ ...wizardProgressFill, width: `${onboardingProgress}%` }} />
+        </div>
+
+        <div style={wizardStepDots}>
+          {onboardingSteps.map((step, index) => (
+            <span
+              key={step}
+              style={index <= onboardingStep ? wizardStepDotActive : wizardStepDot}
+            >
+              {index + 1}
+            </span>
+          ))}
+        </div>
+
+        {onboardingStep === 0 && (
+          <div style={wizardHero}>
+            <span style={wizardBadge}>Personalized move checklist</span>
+            <h1 style={wizardTitle}>Make your address updates feel manageable.</h1>
+            <p style={wizardCopy}>
+              MoveMate builds a focused checklist for the accounts, services, and records that need your new address after a move.
+            </p>
+            <div style={wizardFeatureGrid}>
+              <div style={wizardFeature}>
+                <strong>Guided tasks</strong>
+                <span>See what to update first and why it matters.</span>
+              </div>
+              <div style={wizardFeature}>
+                <strong>Saved profile</strong>
+                <span>Keep your move details ready for quick copying.</span>
+              </div>
+            </div>
+            <button onClick={goToNextOnboardingStep} style={wizardPrimaryBtn}>
+              Start Your Move
+            </button>
+          </div>
+        )}
+
+        {onboardingStep === 1 && (
+          <div>
+            <h1 style={wizardTitle}>Tell us who is moving.</h1>
+            <p style={wizardCopy}>This information stays in your browser and helps you copy common details while updating accounts.</p>
+            <div style={wizardTwoColumn}>
+              <input placeholder="First Name" value={firstName} onChange={(e) => setFirstName(e.target.value)} style={input} />
+              <input placeholder="Last Name" value={lastName} onChange={(e) => setLastName(e.target.value)} style={input} />
+            </div>
+            <input placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} style={input} />
+            <input placeholder="Phone" value={phone} onChange={(e) => setPhone(e.target.value)} style={input} />
+          </div>
+        )}
+
+        {onboardingStep === 2 && (
+          <div>
+            <h1 style={wizardTitle}>Add your new address.</h1>
+            <p style={wizardCopy}>MoveMate will keep this ready for account updates, forms, and quick reference.</p>
+            <input placeholder="Street Address" value={street} onChange={(e) => setStreet(e.target.value)} style={input} />
+            <div style={wizardTwoColumn}>
+              <input placeholder="City" value={city} onChange={(e) => setCity(e.target.value)} style={input} />
+              <input placeholder="State" value={state} onChange={(e) => setState(e.target.value)} style={input} />
+            </div>
+            <div style={wizardTwoColumn}>
+              <input placeholder="Zip" value={zip} onChange={(e) => setZip(e.target.value)} style={input} />
+              <input placeholder="Country" value={country} onChange={(e) => setCountry(e.target.value)} style={input} />
+            </div>
+          </div>
+        )}
+
+        {onboardingStep === 3 && (
+          <div>
+            <h1 style={wizardTitle}>Choose the accounts that apply.</h1>
+            <p style={wizardCopy}>Your dashboard will start with these categories. You can add or delete checklist items later.</p>
+            <div style={wizardCategoryGrid}>
+              {onboardingCategoryOptions.map(option => {
+                const isSelected = selectedOnboardingCategories.includes(option.key);
+                return (
+                  <button
+                    key={option.key}
+                    onClick={() => toggleOnboardingCategory(option.key)}
+                    style={isSelected ? wizardCategorySelected : wizardCategory}
+                  >
+                    <span style={isSelected ? wizardCheckSelected : wizardCheck}>
+                      {isSelected ? "✓" : ""}
+                    </span>
+                    <span style={wizardCategoryText}>
+                      <strong>{option.label}</strong>
+                      <span>{option.description}</span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {onboardingStep === 4 && (
+          <div style={wizardHero}>
+            <span style={wizardBadge}>Checklist ready</span>
+            <h1 style={wizardTitle}>Your personalized moving checklist is ready.</h1>
+            <p style={wizardCopy}>
+              You selected {selectedOnboardingCategories.length || onboardingCategoryOptions.length} categories. Your dashboard is ready with progress tracking, guided actions, and copy-ready move details.
+            </p>
+            <div style={wizardSummaryCard}>
+              <span style={infoLabel}>Selected categories</span>
+              <strong style={wizardSummaryValue}>
+                {(selectedOnboardingCategories.length ? selectedOnboardingCategories : onboardingCategoryOptions.map(option => option.key)).join(", ")}
+              </strong>
+            </div>
+            <button onClick={completeOnboarding} style={wizardPrimaryBtn}>
+              Enter Dashboard
+            </button>
+          </div>
+        )}
+
+        {onboardingStep > 0 && onboardingStep < 4 && (
+          <div style={wizardActions}>
+            <button onClick={goToPreviousOnboardingStep} style={wizardSecondaryBtn}>
+              Back
+            </button>
+            <button onClick={goToNextOnboardingStep} style={canContinue ? wizardPrimaryBtn : wizardPrimaryBtnDisabled} disabled={!canContinue}>
+              Continue
+            </button>
+          </div>
+        )}
+
+        {onboardingStep === 4 && (
+          <button onClick={goToPreviousOnboardingStep} style={wizardSecondaryBtn}>
+            Back
+          </button>
+        )}
+      </OnboardingShell>
+    );
+  }
 
   // ---------------- SUMMARY ----------------
   if (view === "summary") {
@@ -799,6 +1037,12 @@ const Centered = ({ children }) => (
   </div>
 );
 
+const OnboardingShell = ({ children }) => (
+  <div style={{ display: "flex", justifyContent: "center", padding: "64px 20px 80px" }}>
+    <div style={wizardPanel}>{children}</div>
+  </div>
+);
+
 const panel = {
   width: "min(100%, 560px)",
   padding: 36,
@@ -808,6 +1052,257 @@ const panel = {
   boxShadow: "var(--shadow)",
   boxSizing: "border-box",
   textAlign: "left",
+};
+
+const wizardPanel = {
+  ...panel,
+  width: "min(100%, 720px)",
+  padding: 42,
+  borderColor: "var(--accent-border)",
+  background: "linear-gradient(180deg, var(--action-bg), var(--surface) 34%)",
+};
+
+const wizardTopline = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 16,
+  marginBottom: 12,
+};
+
+const wizardStepCount = {
+  color: "var(--text)",
+  fontSize: 14,
+  fontWeight: 800,
+  whiteSpace: "nowrap",
+};
+
+const wizardProgressTrack = {
+  width: "100%",
+  height: 10,
+  overflow: "hidden",
+  border: "1px solid var(--border)",
+  borderRadius: 999,
+  background: "var(--secondary-bg)",
+};
+
+const wizardProgressFill = {
+  height: "100%",
+  borderRadius: 999,
+  background: "var(--accent)",
+  transition: "width 0.28s ease",
+};
+
+const wizardStepDots = {
+  display: "flex",
+  gap: 8,
+  margin: "18px 0 32px",
+};
+
+const wizardStepDot = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: 32,
+  height: 32,
+  border: "1px solid var(--border)",
+  borderRadius: 999,
+  background: "var(--surface)",
+  color: "var(--text)",
+  fontSize: 13,
+  fontWeight: 900,
+};
+
+const wizardStepDotActive = {
+  ...wizardStepDot,
+  borderColor: "var(--accent-border)",
+  background: "var(--accent-bg)",
+  color: "var(--accent-strong)",
+};
+
+const wizardHero = {
+  display: "grid",
+  gap: 16,
+};
+
+const wizardBadge = {
+  display: "inline-flex",
+  width: "fit-content",
+  padding: "6px 10px",
+  border: "1px solid var(--accent-border)",
+  borderRadius: 999,
+  background: "var(--accent-bg)",
+  color: "var(--accent-strong)",
+  fontSize: 13,
+  fontWeight: 900,
+};
+
+const wizardTitle = {
+  margin: 0,
+  fontSize: 40,
+  lineHeight: "110%",
+};
+
+const wizardCopy = {
+  margin: "0 0 8px",
+  fontSize: 17,
+  lineHeight: "155%",
+};
+
+const wizardFeatureGrid = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))",
+  gap: 12,
+  margin: "2px 0 4px",
+};
+
+const wizardFeature = {
+  display: "grid",
+  gap: 4,
+  padding: 16,
+  border: "1px solid var(--border)",
+  borderRadius: 12,
+  background: "var(--surface)",
+  boxShadow: "var(--shadow-subtle)",
+};
+
+const wizardTwoColumn = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+  gap: 14,
+};
+
+const wizardCategoryGrid = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))",
+  gap: 12,
+};
+
+const wizardCategory = {
+  display: "flex",
+  width: "100%",
+  minHeight: 94,
+  justifyContent: "flex-start",
+  alignItems: "flex-start",
+  gap: 12,
+  marginTop: 0,
+  padding: 16,
+  border: "1px solid var(--border)",
+  borderRadius: 12,
+  font: "inherit",
+  fontWeight: 700,
+  cursor: "pointer",
+  boxSizing: "border-box",
+  letterSpacing: 0,
+  textDecoration: "none",
+  borderColor: "var(--border)",
+  background: "var(--surface)",
+  color: "var(--text-h)",
+  textAlign: "left",
+};
+
+const wizardCategorySelected = {
+  ...wizardCategory,
+  borderColor: "var(--accent-border)",
+  background: "var(--accent-bg)",
+};
+
+const wizardCheck = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: 24,
+  height: 24,
+  border: "1px solid var(--border-strong)",
+  borderRadius: 8,
+  color: "transparent",
+  fontSize: 14,
+  fontWeight: 900,
+  flex: "0 0 auto",
+};
+
+const wizardCheckSelected = {
+  ...wizardCheck,
+  borderColor: "var(--accent)",
+  background: "var(--accent)",
+  color: "white",
+};
+
+const wizardCategoryText = {
+  display: "grid",
+  gap: 4,
+  color: "var(--text)",
+  fontSize: 14,
+  lineHeight: "140%",
+};
+
+const wizardActions = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+  gap: 12,
+  marginTop: 26,
+};
+
+const wizardPrimaryBtn = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "100%",
+  minHeight: 54,
+  marginTop: 0,
+  padding: "14px 18px",
+  border: "1px solid transparent",
+  borderRadius: 12,
+  background: "var(--accent)",
+  color: "white",
+  boxShadow: "0 10px 20px rgba(37, 99, 235, 0.18)",
+  font: "inherit",
+  fontSize: 16,
+  fontWeight: 700,
+  cursor: "pointer",
+  boxSizing: "border-box",
+  letterSpacing: 0,
+  textDecoration: "none",
+};
+
+const wizardPrimaryBtnDisabled = {
+  ...wizardPrimaryBtn,
+  opacity: 0.5,
+  cursor: "not-allowed",
+};
+
+const wizardSecondaryBtn = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "100%",
+  minHeight: 54,
+  marginTop: 0,
+  padding: "14px 18px",
+  border: "1px solid var(--border)",
+  borderRadius: 12,
+  background: "var(--secondary-bg)",
+  color: "var(--text-h)",
+  font: "inherit",
+  fontWeight: 700,
+  cursor: "pointer",
+  boxSizing: "border-box",
+  letterSpacing: 0,
+  textDecoration: "none",
+};
+
+const wizardSummaryCard = {
+  display: "grid",
+  gap: 6,
+  padding: 18,
+  border: "1px solid var(--border)",
+  borderRadius: 12,
+  background: "var(--surface)",
+  boxShadow: "var(--shadow-subtle)",
+};
+
+const wizardSummaryValue = {
+  lineHeight: "150%",
 };
 
 const input = {
