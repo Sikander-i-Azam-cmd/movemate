@@ -178,9 +178,8 @@ function App() {
     return completedOnboarding || finishedWizard || (!startedOnboarding && Boolean(hasExistingMoveMateData()));
   });
   const [currentView, setCurrentView] = useState(() => (
-    hasCompletedOnboarding ? (localStorage.getItem("movemate-current-view") || "dashboard") : "onboarding"
+    hasCompletedOnboarding ? (localStorage.getItem("movemate-current-view") || "welcome") : "onboarding"
   ));
-  const [isShowingSummary, setIsShowingSummary] = useState(false);
   const [onboardingStep, setOnboardingStep] = useState(() => {
     const savedStep = Number(localStorage.getItem("movemate-onboarding-step"));
     return Number.isInteger(savedStep) && savedStep >= 0 && savedStep < onboardingSteps.length ? savedStep : 0;
@@ -283,16 +282,15 @@ function App() {
     return helpers[cat] || `Updating ${name} helps important account notices and saved address details follow you to the right place.`;
   };
 
-  const goToDashboard = () => {
-    setCurrentView("dashboard");
+  const goToWelcome = () => {
+    setCurrentView("welcome");
     setActiveCategory(null);
     setSelectedItemId(null);
     setSearch("");
     setNewItem("");
-    setIsShowingSummary(false);
   };
 
-  const closeDetailPanel = goToDashboard;
+  const closeDetailPanel = goToWelcome;
 
   const openProfile = () => {
     setCurrentView("profile");
@@ -300,30 +298,66 @@ function App() {
     setSelectedItemId(null);
     setSearch("");
     setNewItem("");
-    setIsShowingSummary(false);
   };
 
   const openChecklist = () => {
-    setCurrentView("checklist");
+    setCurrentView("categories");
     setActiveCategory(null);
     setSelectedItemId(null);
     setSearch("");
     setNewItem("");
-    setIsShowingSummary(false);
+  };
+
+  const findNextTask = (cat, currentId = null) => {
+    const items = categories[cat] || [];
+    const currentIndex = currentId ? items.findIndex(item => item.id === currentId) : -1;
+    const afterCurrent = currentIndex >= 0 ? items.slice(currentIndex + 1) : items;
+    if (!currentId) {
+      return items.find(item => getItemStatus(item) !== "completed") || items[0] || null;
+    }
+
+    return (
+      afterCurrent.find(item => getItemStatus(item) !== "completed") ||
+      items.find(item => item.id !== currentId && getItemStatus(item) !== "completed") ||
+      items.find(item => item.id !== currentId) ||
+      null
+    );
   };
 
   const openCategory = (cat) => {
+    const nextTask = findNextTask(cat);
     setActiveCategory(cat);
-    setSelectedItemId(null);
+    setSelectedItemId(nextTask ? nextTask.id : null);
     setSearch("");
     setNewItem("");
-    setIsShowingSummary(false);
-    setCurrentView("category");
+    if (nextTask && getItemStatus(nextTask) === "not_started") {
+      updateItemStatus(cat, nextTask.id, "in_progress");
+    }
+    setCurrentView(nextTask ? "task" : "complete");
   };
 
-  const openTaskDetails = () => {
+  const goToNextTask = () => {
+    if (!activeCategory) {
+      setCurrentView("categories");
+      return;
+    }
+
+    const nextTask = findNextTask(activeCategory, selectedItemId);
+    if (nextTask) {
+      setSelectedItemId(nextTask.id);
+      if (getItemStatus(nextTask) === "not_started") {
+        updateItemStatus(activeCategory, nextTask.id, "in_progress");
+      }
+      setCurrentView("task");
+      return;
+    }
+
+    setCurrentView("complete");
+  };
+
+  const markSelectedTaskComplete = () => {
     if (!activeCategory || !selectedItemId) return;
-    setCurrentView("task");
+    updateItemStatus(activeCategory, selectedItemId, "completed");
   };
 
   const openUpdatePage = (link) => {
@@ -602,12 +636,11 @@ function App() {
     localStorage.setItem("movemate-onboarding-complete", "true");
     localStorage.setItem("movemate-onboarding-step", String(onboardingSteps.length - 1));
     setCategories(personalizedCategories);
-    setCurrentView("dashboard");
+    setCurrentView("welcome");
     setActiveCategory(null);
     setSelectedItemId(null);
     setSearch("");
     setNewItem("");
-    setIsShowingSummary(false);
     setOnboardingStep(onboardingSteps.length - 1);
     setHasCompletedOnboarding(true);
   };
@@ -616,15 +649,15 @@ function App() {
   const renderedView = (() => {
     if (!hasCompletedOnboarding || currentView === "onboarding") return "onboarding";
     if (currentView === "profile") return "profile";
-    if (currentView === "checklist") return "checklist";
-    if (currentView === "category" && activeCategory && categories[activeCategory]) return "category";
+    if (["categories", "checklist", "category"].includes(currentView)) return "categories";
     if (
       currentView === "task" &&
       activeCategory &&
       categories[activeCategory] &&
       categories[activeCategory].some(item => item.id === selectedItemId)
     ) return "task";
-    return "dashboard";
+    if (currentView === "complete") return "complete";
+    return "welcome";
   })();
 
   if (renderedView === "onboarding") {
@@ -737,7 +770,7 @@ function App() {
             <span style={wizardBadge}>Checklist ready</span>
             <h1 style={wizardTitle}>Your personalized moving checklist is ready.</h1>
             <p style={wizardCopy}>
-              You selected {selectedOnboardingCategories.length || onboardingCategoryOptions.length} categories. Your dashboard is ready with progress tracking, guided actions, and copy-ready move details.
+              You selected {selectedOnboardingCategories.length || onboardingCategoryOptions.length} categories. Your guided workflow is ready with progress tracking, focused tasks, and copy-ready move details.
             </p>
             <div style={wizardSummaryCard}>
               <span style={infoLabel}>Selected categories</span>
@@ -746,7 +779,7 @@ function App() {
               </strong>
             </div>
             <button onClick={completeOnboarding} style={wizardPrimaryBtn}>
-              Enter Dashboard
+              Enter Guided Flow
             </button>
           </div>
         )}
@@ -771,28 +804,16 @@ function App() {
     );
   }
 
-  const appNav = (
-    <AppNav
-      currentView={renderedView}
-      canOpenTask={Boolean(activeCategory && selectedItemId)}
-      onDashboard={goToDashboard}
-      onProfile={openProfile}
-      onChecklist={openChecklist}
-      onTask={openTaskDetails}
-    />
-  );
-
   // ---------------- PROFILE ----------------
   if (renderedView === "profile") {
     return (
       <Centered>
-        {appNav}
         <div style={workspaceHeader}>
           <div>
-            <div style={eyebrow}>Move profile</div>
-            <h1 style={workspaceTitle}>Your saved move details</h1>
+            <div style={eyebrow}>Step 2 of 5</div>
+            <h1 style={workspaceTitle}>Confirm your move profile</h1>
           </div>
-          <button onClick={goToDashboard} style={editBtn}>Done</button>
+          <button onClick={goToWelcome} style={editBtn}>Back</button>
         </div>
 
         <div style={profileCard}>
@@ -869,24 +890,27 @@ function App() {
             </div>
           )}
         </div>
+
+        <button onClick={openChecklist} style={primaryBtn}>
+          Continue to Categories
+        </button>
       </Centered>
     );
   }
 
-  // ---------------- CHECKLIST ----------------
-  if (renderedView === "checklist") {
+  // ---------------- CATEGORY SELECTION ----------------
+  if (renderedView === "categories") {
     return (
       <Centered>
-        {appNav}
         <div style={workspaceHeader}>
           <div>
-            <div style={eyebrow}>Categories / checklist</div>
-            <h1 style={workspaceTitle}>Checklist workspace</h1>
+            <div style={eyebrow}>Step 3 of 5</div>
+            <h1 style={workspaceTitle}>Choose what to update next</h1>
           </div>
           <span style={progressBadge}>{progress}% complete</span>
         </div>
 
-        <p style={progressCopy}>Choose a category to update accounts, open guided task details, or add custom checklist items.</p>
+        <p style={progressCopy}>Select a category and MoveMate will guide you through one task at a time.</p>
 
         <div style={checklistOverviewCard}>
           <div style={recommendationHeader}>
@@ -908,6 +932,10 @@ function App() {
             );
           })}
         </div>
+
+        <button onClick={openProfile} style={secondaryBtn}>
+          Back to Move Profile
+        </button>
       </Centered>
     );
   }
@@ -919,10 +947,9 @@ function App() {
 
     return (
       <Centered>
-        {appNav}
         <div style={workspaceHeader}>
           <div>
-            <div style={eyebrow}>Guided task</div>
+            <div style={eyebrow}>Step 4 of 5</div>
             <h1 style={workspaceTitle}>{selectedItem.text}</h1>
           </div>
           <span style={selectedStatus === "completed" ? statusDone : selectedStatus === "in_progress" ? statusProgress : statusOpen}>
@@ -985,16 +1012,16 @@ function App() {
               Open Update Page
             </button>
             <button
-              onClick={() => updateItemStatus(activeCategory, selectedItem.id, "completed")}
+              onClick={markSelectedTaskComplete}
               style={selectedStatus === "completed" ? secondaryBtn : primaryBtn}
             >
               Mark Completed
             </button>
-            <button onClick={() => openCategory(activeCategory)} style={secondaryBtn}>
-              Back to Category
+            <button onClick={goToNextTask} style={secondaryBtn}>
+              Next Task
             </button>
-            <button onClick={goToDashboard} style={secondaryBtn}>
-              Dashboard
+            <button onClick={openChecklist} style={secondaryBtn}>
+              Choose Another Category
             </button>
           </div>
         </div>
@@ -1014,7 +1041,6 @@ function App() {
 
     return (
       <Centered>
-        {appNav}
         <h2>{activeCategory}</h2>
 
         <input placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} style={input} />
@@ -1093,12 +1119,12 @@ function App() {
     );
   }
 
-  if (isShowingSummary) {
+  if (renderedView === "complete") {
     return (
       <Centered>
-        {appNav}
         <div style={summaryCard}>
-          <h2 style={summaryTitle}>Summary</h2>
+          <div style={eyebrow}>Step 5 of 5</div>
+          <h2 style={summaryTitle}>Completion / Progress</h2>
           <p><strong>{progress}% complete</strong></p>
 
           {Object.keys(categories).map(cat => {
@@ -1115,9 +1141,69 @@ function App() {
             );
           })}
 
-          <button onClick={downloadChecklist} style={primaryBtn}>Download</button>
-          <button onClick={copyChecklist} style={secondaryBtn}>Copy</button>
-          <button onClick={() => setIsShowingSummary(false)} style={secondaryBtn}>Back</button>
+          <div style={quickActionsGrid}>
+            <button onClick={downloadChecklist} style={primaryBtn}>Download</button>
+            <button onClick={copyChecklist} style={secondaryBtn}>Copy</button>
+            <button onClick={openChecklist} style={secondaryBtn}>Continue Updating</button>
+            <button onClick={goToWelcome} style={secondaryBtn}>Back to Overview</button>
+          </div>
+        </div>
+
+        <div style={commonlyForgottenCard}>
+          <div style={recommendationHeader}>
+            <div>
+              <div style={eyebrow}>Commonly forgotten</div>
+              <h2 style={recommendationTitle}>Worth double-checking</h2>
+            </div>
+            <span style={recommendationBadge}>{commonlyForgotten.length}</span>
+          </div>
+
+          <div style={recommendationList}>
+            {(commonlyForgotten.length ? commonlyForgotten : [
+              {
+                cat: null,
+                title: "Nothing urgent is hiding here",
+                description: "Your commonly forgotten categories are either complete or not part of this checklist.",
+              },
+            ]).map(item => (
+              <button
+                key={item.title}
+                onClick={() => item.cat && openCategory(item.cat)}
+                style={item.cat ? recommendationItem : recommendationItemStatic}
+              >
+                <span style={recommendationText}>
+                  <strong style={recommendationItemTitle}>{item.title}</strong>
+                  <span style={recommendationDescription}>{item.description}</span>
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div style={recommendationCard}>
+          <div style={recommendationHeader}>
+            <div>
+              <div style={eyebrow}>Recommended next</div>
+              <h2 style={recommendationTitle}>Focus your next update</h2>
+            </div>
+            <span style={recommendationBadge}>{recommendedNextSteps.length}</span>
+          </div>
+
+          <div style={recommendationList}>
+            {recommendedNextSteps.map((item, index) => (
+              <button
+                key={`${item.cat || "complete"}-${item.title}`}
+                onClick={() => item.cat && openCategory(item.cat)}
+                style={item.cat ? recommendationItem : recommendationItemStatic}
+              >
+                <span style={recommendationIcon}>{index + 1}</span>
+                <span style={recommendationText}>
+                  <strong style={recommendationItemTitle}>{item.title}</strong>
+                  <span style={recommendationDescription}>{item.description}</span>
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
       </Centered>
     );
@@ -1126,13 +1212,12 @@ function App() {
   // ---------------- MAIN ----------------
   return (
     <Centered>
-      {appNav}
       <div style={dashboardHero}>
         <div>
-          <div style={eyebrow}>MoveMate dashboard</div>
-          <h1 style={dashboardTitle}>Your move command center</h1>
+          <div style={eyebrow}>Step 1 of 5</div>
+          <h1 style={dashboardTitle}>Ready to update your move details?</h1>
           <p style={dashboardIntro}>
-            Track every address update from one place, focus on the highest-impact accounts, and keep your move details ready to copy.
+            MoveMate guides you through your profile, categories, and one address-update task at a time.
           </p>
         </div>
         <span style={dashboardScore}>{progress}%</span>
@@ -1150,32 +1235,6 @@ function App() {
         <div style={dashboardStat}>
           <span style={infoLabel}>Remaining work</span>
           <strong style={dashboardStatValue}>{progressStats.remainingCount} important {progressStats.remainingCount === 1 ? "account" : "accounts"}</strong>
-        </div>
-      </div>
-
-      <div style={quickActionsCard}>
-        <div style={recommendationHeader}>
-          <div>
-            <div style={eyebrow}>Quick actions</div>
-            <h2 style={recommendationTitle}>Jump back in</h2>
-          </div>
-        </div>
-        <div style={quickActionsGrid}>
-          <button onClick={() => {
-            setIsEditingProfile(true);
-            openProfile();
-          }} style={quickActionBtn}>
-            Edit Move Profile
-          </button>
-          <button onClick={() => copyText("dashboard-full", fullProfileText)} style={copiedKey === "dashboard-full" ? copyBtnDone : quickActionBtn}>
-            {copiedKey === "dashboard-full" ? "Copied!" : "Copy Full Profile"}
-          </button>
-          <button onClick={() => setIsShowingSummary(true)} style={quickActionBtn}>
-            Review Summary
-          </button>
-          <button onClick={openChecklist} style={quickActionBtn}>
-            Open Checklist
-          </button>
         </div>
       </div>
 
@@ -1214,68 +1273,14 @@ function App() {
         </div>
       </div>
 
-      <div style={commonlyForgottenCard}>
-        <div style={recommendationHeader}>
-          <div>
-            <div style={eyebrow}>Commonly forgotten</div>
-            <h2 style={recommendationTitle}>Worth double-checking</h2>
-          </div>
-          <span style={recommendationBadge}>{commonlyForgotten.length}</span>
-        </div>
-
-        <div style={recommendationList}>
-          {(commonlyForgotten.length ? commonlyForgotten : [
-            {
-              cat: null,
-              title: "Nothing urgent is hiding here",
-              description: "Your commonly forgotten categories are either complete or not part of this checklist.",
-            },
-          ]).map(item => (
-            <button
-              key={item.title}
-              onClick={() => item.cat && openCategory(item.cat)}
-              style={item.cat ? recommendationItem : recommendationItemStatic}
-            >
-              <span style={recommendationText}>
-                <strong style={recommendationItemTitle}>{item.title}</strong>
-                <span style={recommendationDescription}>{item.description}</span>
-              </span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div style={recommendationCard}>
-        <div style={recommendationHeader}>
-          <div>
-            <div style={eyebrow}>Recommended next steps</div>
-            <h2 style={recommendationTitle}>Focus your next update</h2>
-          </div>
-          <span style={recommendationBadge}>{recommendedNextSteps.length}</span>
-        </div>
-
-        <div style={recommendationList}>
-          {recommendedNextSteps.map((item, index) => (
-            <button
-              key={`${item.cat || "complete"}-${item.title}`}
-              onClick={() => {
-                if (!item.cat) return;
-                openCategory(item.cat);
-              }}
-              style={item.cat ? recommendationItem : recommendationItemStatic}
-            >
-              <span style={recommendationIcon}>{index + 1}</span>
-              <span style={recommendationText}>
-                <strong style={recommendationItemTitle}>{item.title}</strong>
-                <span style={recommendationDescription}>{item.description}</span>
-              </span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <button onClick={() => setIsShowingSummary(true)} style={primaryBtn}>
-        Finish
+      <button onClick={openProfile} style={primaryBtn}>
+        Start Guided Flow
+      </button>
+      <button onClick={openChecklist} style={secondaryBtn}>
+        Choose a Category
+      </button>
+      <button onClick={() => setCurrentView("complete")} style={secondaryBtn}>
+        View Progress
       </button>
     </Centered>
   );
@@ -1294,36 +1299,6 @@ const OnboardingShell = ({ children }) => (
   </div>
 );
 
-const AppNav = ({ currentView, canOpenTask, onDashboard, onProfile, onChecklist, onTask }) => (
-  <div style={appNav}>
-    <button
-      onClick={onDashboard}
-      style={currentView === "dashboard" ? appNavBtnActive : appNavBtn}
-    >
-      Dashboard
-    </button>
-    <button
-      onClick={onProfile}
-      style={currentView === "profile" ? appNavBtnActive : appNavBtn}
-    >
-      Move Profile
-    </button>
-    <button
-      onClick={onChecklist}
-      style={["checklist", "category"].includes(currentView) ? appNavBtnActive : appNavBtn}
-    >
-      Categories / Checklist
-    </button>
-    <button
-      onClick={onTask}
-      disabled={!canOpenTask}
-      style={currentView === "task" ? appNavBtnActive : canOpenTask ? appNavBtn : appNavBtnDisabled}
-    >
-      Tasks / Details
-    </button>
-  </div>
-);
-
 const panel = {
   width: "min(100%, 560px)",
   padding: 36,
@@ -1333,51 +1308,6 @@ const panel = {
   boxShadow: "var(--shadow)",
   boxSizing: "border-box",
   textAlign: "left",
-};
-
-const appNav = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
-  gap: 10,
-  marginBottom: 28,
-  padding: 8,
-  border: "1px solid var(--border)",
-  borderRadius: 12,
-  background: "var(--category-bg)",
-};
-
-const appNavBtn = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  width: "100%",
-  minHeight: 42,
-  padding: "10px 12px",
-  border: "1px solid transparent",
-  borderRadius: 10,
-  background: "transparent",
-  color: "var(--text-h)",
-  font: "inherit",
-  fontSize: 14,
-  fontWeight: 800,
-  cursor: "pointer",
-  boxSizing: "border-box",
-  letterSpacing: 0,
-};
-
-const appNavBtnActive = {
-  ...appNavBtn,
-  borderColor: "var(--accent-border)",
-  background: "var(--surface)",
-  color: "var(--accent-strong)",
-  boxShadow: "var(--shadow-subtle)",
-};
-
-const appNavBtnDisabled = {
-  ...appNavBtn,
-  color: "var(--text)",
-  cursor: "not-allowed",
-  opacity: 0.55,
 };
 
 const wizardPanel = {
@@ -1713,41 +1643,10 @@ const dashboardStatValue = {
   lineHeight: "135%",
 };
 
-const quickActionsCard = {
-  marginBottom: 24,
-  padding: 22,
-  border: "1px solid var(--border)",
-  borderRadius: 12,
-  background: "var(--surface)",
-  boxShadow: "var(--shadow-hover)",
-};
-
 const quickActionsGrid = {
   display: "grid",
   gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
   gap: 10,
-};
-
-const quickActionBtn = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  width: "100%",
-  minHeight: 48,
-  marginTop: 0,
-  padding: "12px 14px",
-  border: "1px solid var(--border)",
-  borderRadius: 12,
-  borderColor: "var(--border)",
-  background: "var(--secondary-bg)",
-  color: "var(--text-h)",
-  font: "inherit",
-  fontSize: 14,
-  fontWeight: 700,
-  cursor: "pointer",
-  boxSizing: "border-box",
-  letterSpacing: 0,
-  textDecoration: "none",
 };
 
 const commonlyForgottenCard = {
