@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react"; console.log("new version");
 
 function App() {
-  const [view, setView] = useState("main");
-  const [activeCategory, setActiveCategory] = useState(null);
-  const [selectedItemId, setSelectedItemId] = useState(null);
+  const [activeCategory, setActiveCategory] = useState(() => localStorage.getItem("movemate-active-category") || null);
+  const [selectedItemId, setSelectedItemId] = useState(() => {
+    const savedItemId = Number(localStorage.getItem("movemate-selected-item"));
+    return Number.isFinite(savedItemId) && savedItemId > 0 ? savedItemId : null;
+  });
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [newItem, setNewItem] = useState("");
   const [search, setSearch] = useState("");
@@ -169,9 +171,16 @@ function App() {
 
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(() => {
     const completedOnboarding = localStorage.getItem("movemate-onboarding-complete") === "true";
+    const savedCategories = localStorage.getItem("movemate-categories");
+    const savedStep = Number(localStorage.getItem("movemate-onboarding-step"));
+    const finishedWizard = savedCategories && savedStep === onboardingSteps.length - 1;
     const startedOnboarding = localStorage.getItem("movemate-onboarding-step") || localStorage.getItem("movemate-onboarding-categories");
-    return completedOnboarding || (!startedOnboarding && Boolean(hasExistingMoveMateData()));
+    return completedOnboarding || finishedWizard || (!startedOnboarding && Boolean(hasExistingMoveMateData()));
   });
+  const [currentView, setCurrentView] = useState(() => (
+    hasCompletedOnboarding ? (localStorage.getItem("movemate-current-view") || "dashboard") : "onboarding"
+  ));
+  const [isShowingSummary, setIsShowingSummary] = useState(false);
   const [onboardingStep, setOnboardingStep] = useState(() => {
     const savedStep = Number(localStorage.getItem("movemate-onboarding-step"));
     return Number.isInteger(savedStep) && savedStep >= 0 && savedStep < onboardingSteps.length ? savedStep : 0;
@@ -189,8 +198,35 @@ function App() {
   });
 
   useEffect(() => {
+    if (!hasCompletedOnboarding) return;
     localStorage.setItem("movemate-categories", JSON.stringify(categories));
-  }, [categories]);
+  }, [categories, hasCompletedOnboarding]);
+
+  useEffect(() => {
+    if (!hasCompletedOnboarding) return;
+    localStorage.setItem("movemate-onboarding-complete", "true");
+  }, [hasCompletedOnboarding]);
+
+  useEffect(() => {
+    if (!hasCompletedOnboarding) return;
+    localStorage.setItem("movemate-current-view", currentView);
+  }, [currentView, hasCompletedOnboarding]);
+
+  useEffect(() => {
+    if (activeCategory) {
+      localStorage.setItem("movemate-active-category", activeCategory);
+    } else {
+      localStorage.removeItem("movemate-active-category");
+    }
+  }, [activeCategory]);
+
+  useEffect(() => {
+    if (selectedItemId) {
+      localStorage.setItem("movemate-selected-item", String(selectedItemId));
+    } else {
+      localStorage.removeItem("movemate-selected-item");
+    }
+  }, [selectedItemId]);
 
   useEffect(() => {
     localStorage.setItem("movemate-onboarding-step", String(onboardingStep));
@@ -247,7 +283,48 @@ function App() {
     return helpers[cat] || `Updating ${name} helps important account notices and saved address details follow you to the right place.`;
   };
 
-  const closeDetailPanel = () => setSelectedItemId(null);
+  const goToDashboard = () => {
+    setCurrentView("dashboard");
+    setActiveCategory(null);
+    setSelectedItemId(null);
+    setSearch("");
+    setNewItem("");
+    setIsShowingSummary(false);
+  };
+
+  const closeDetailPanel = goToDashboard;
+
+  const openProfile = () => {
+    setCurrentView("profile");
+    setActiveCategory(null);
+    setSelectedItemId(null);
+    setSearch("");
+    setNewItem("");
+    setIsShowingSummary(false);
+  };
+
+  const openChecklist = () => {
+    setCurrentView("checklist");
+    setActiveCategory(null);
+    setSelectedItemId(null);
+    setSearch("");
+    setNewItem("");
+    setIsShowingSummary(false);
+  };
+
+  const openCategory = (cat) => {
+    setActiveCategory(cat);
+    setSelectedItemId(null);
+    setSearch("");
+    setNewItem("");
+    setIsShowingSummary(false);
+    setCurrentView("category");
+  };
+
+  const openTaskDetails = () => {
+    if (!activeCategory || !selectedItemId) return;
+    setCurrentView("task");
+  };
 
   const openUpdatePage = (link) => {
     if (!link) return;
@@ -433,6 +510,24 @@ function App() {
     return recommendations.slice(0, 3);
   })();
 
+  const commonlyForgotten = [
+    {
+      cat: "Utilities",
+      title: "Utilities and service providers",
+      description: "Avoid billing confusion and missed notices after your move.",
+    },
+    {
+      cat: "Government / DMV",
+      title: "DMV and government records",
+      description: "Keep registration, IDs, and official mail aligned.",
+    },
+    {
+      cat: "Healthcare",
+      title: "Healthcare and benefits",
+      description: "Update benefits, claims, and provider records before mail gets missed.",
+    },
+  ].filter(item => categories[item.cat]?.some(task => getItemStatus(task) !== "completed"));
+
   const savedName = `${firstName} ${lastName}`.trim();
   const savedAddress = [street, address2, city, state, zip, country].filter(Boolean).join(", ");
   const fullProfileText = [
@@ -503,17 +598,36 @@ function App() {
       Object.entries(defaultCategories).filter(([cat]) => selectedCategories.includes(cat))
     );
 
-    setCategories(personalizedCategories);
-    setView("main");
-    setOnboardingStep(onboardingSteps.length - 1);
-    setHasCompletedOnboarding(true);
+    localStorage.setItem("movemate-categories", JSON.stringify(personalizedCategories));
     localStorage.setItem("movemate-onboarding-complete", "true");
     localStorage.setItem("movemate-onboarding-step", String(onboardingSteps.length - 1));
+    setCategories(personalizedCategories);
+    setCurrentView("dashboard");
+    setActiveCategory(null);
+    setSelectedItemId(null);
+    setSearch("");
+    setNewItem("");
+    setIsShowingSummary(false);
+    setOnboardingStep(onboardingSteps.length - 1);
+    setHasCompletedOnboarding(true);
   };
 
   const onboardingProgress = Math.round(((onboardingStep + 1) / onboardingSteps.length) * 100);
+  const renderedView = (() => {
+    if (!hasCompletedOnboarding || currentView === "onboarding") return "onboarding";
+    if (currentView === "profile") return "profile";
+    if (currentView === "checklist") return "checklist";
+    if (currentView === "category" && activeCategory && categories[activeCategory]) return "category";
+    if (
+      currentView === "task" &&
+      activeCategory &&
+      categories[activeCategory] &&
+      categories[activeCategory].some(item => item.id === selectedItemId)
+    ) return "task";
+    return "dashboard";
+  })();
 
-  if (!hasCompletedOnboarding) {
+  if (renderedView === "onboarding") {
     const isAccountStep = onboardingStep === 3;
     const canContinue = !isAccountStep || selectedOnboardingCategories.length > 0;
 
@@ -657,40 +771,241 @@ function App() {
     );
   }
 
-  // ---------------- SUMMARY ----------------
-  if (view === "summary") {
+  const appNav = (
+    <AppNav
+      currentView={renderedView}
+      canOpenTask={Boolean(activeCategory && selectedItemId)}
+      onDashboard={goToDashboard}
+      onProfile={openProfile}
+      onChecklist={openChecklist}
+      onTask={openTaskDetails}
+    />
+  );
+
+  // ---------------- PROFILE ----------------
+  if (renderedView === "profile") {
     return (
       <Centered>
-        <h2>Summary</h2>
-        <p><strong>{progress}% complete</strong></p>
+        {appNav}
+        <div style={workspaceHeader}>
+          <div>
+            <div style={eyebrow}>Move profile</div>
+            <h1 style={workspaceTitle}>Your saved move details</h1>
+          </div>
+          <button onClick={goToDashboard} style={editBtn}>Done</button>
+        </div>
 
-        {Object.keys(categories).map(cat => {
-          const remaining = categories[cat].filter(i => getItemStatus(i) !== "completed");
-          if (!remaining.length) return null;
-
-          return (
-            <div key={cat}>
-              <strong>{cat}</strong>
-              {remaining.map(i => (
-                <div key={i.id}>• {i.text}</div>
-              ))}
+        <div style={profileCard}>
+          <div style={profileHeader}>
+            <div>
+              <div style={eyebrow}>User address profile</div>
+              <h2 style={profileTitle}>Your Move Profile</h2>
             </div>
-          );
-        })}
+            <button onClick={() => setIsEditingProfile(!isEditingProfile)} style={editBtn}>
+              {isEditingProfile ? "Done" : "Edit"}
+            </button>
+          </div>
 
-        <button onClick={downloadChecklist} style={primaryBtn}>Download</button>
-        <button onClick={copyChecklist} style={secondaryBtn}>Copy</button>
-        <button onClick={() => setView("main")} style={secondaryBtn}>Back</button>
+          {!isEditingProfile && (
+            <div style={profileGrid}>
+              <div style={profileItem}>
+                <span style={infoLabel}>Full name</span>
+                <strong style={profileValue}>{savedName || "Not added yet"}</strong>
+              </div>
+              <div style={profileItem}>
+                <span style={infoLabel}>Email</span>
+                <strong style={profileValue}>{email || "Not added yet"}</strong>
+              </div>
+              <div style={profileItem}>
+                <span style={infoLabel}>Phone</span>
+                <strong style={profileValue}>{phone || "Not added yet"}</strong>
+              </div>
+              <div style={profileItemWide}>
+                <span style={infoLabel}>Full address</span>
+                <strong style={profileValue}>{savedAddress || "Not added yet"}</strong>
+              </div>
+            </div>
+          )}
+
+          {!isEditingProfile && (
+            <div style={quickCopySection}>
+              <button onClick={() => copyText("profile-address", savedAddress)} style={copiedKey === "profile-address" ? copyBtnDone : copyBtn}>
+                {copiedKey === "profile-address" ? "Copied!" : "Copy Full Address"}
+              </button>
+              <button onClick={() => copyText("profile-email", email)} style={copiedKey === "profile-email" ? copyBtnDone : copyBtn}>
+                {copiedKey === "profile-email" ? "Copied!" : "Copy Email"}
+              </button>
+              <button onClick={() => copyText("profile-phone", phone)} style={copiedKey === "profile-phone" ? copyBtnDone : copyBtn}>
+                {copiedKey === "profile-phone" ? "Copied!" : "Copy Phone"}
+              </button>
+              <button onClick={() => copyText("profile-full", fullProfileText)} style={copiedKey === "profile-full" ? copyBtnDone : copyBtn}>
+                {copiedKey === "profile-full" ? "Copied!" : "Copy Full Profile"}
+              </button>
+            </div>
+          )}
+
+          {isEditingProfile && (
+            <div style={profileForm}>
+              <input placeholder="First Name" value={firstName} onChange={(e) => setFirstName(e.target.value)} style={input} />
+              <input placeholder="Last Name" value={lastName} onChange={(e) => setLastName(e.target.value)} style={input} />
+
+              <input placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} style={input} />
+              <input placeholder="Phone" value={phone} onChange={(e) => setPhone(e.target.value)} style={input} />
+
+              <h3>New Address</h3>
+
+              <input placeholder="Street Address" value={street} onChange={(e) => setStreet(e.target.value)} style={input} />
+              <input placeholder="Address Line 2" value={address2} onChange={(e) => setAddress2(e.target.value)} style={input} />
+
+              <div style={{ display: "flex", gap: 14 }}>
+                <input placeholder="City" value={city} onChange={(e) => setCity(e.target.value)} style={input} />
+                <input placeholder="State" value={state} onChange={(e) => setState(e.target.value)} style={input} />
+              </div>
+
+              <div style={{ display: "flex", gap: 14 }}>
+                <input placeholder="Zip" value={zip} onChange={(e) => setZip(e.target.value)} style={input} />
+                <input placeholder="Country" value={country} onChange={(e) => setCountry(e.target.value)} style={input} />
+              </div>
+            </div>
+          )}
+        </div>
+      </Centered>
+    );
+  }
+
+  // ---------------- CHECKLIST ----------------
+  if (renderedView === "checklist") {
+    return (
+      <Centered>
+        {appNav}
+        <div style={workspaceHeader}>
+          <div>
+            <div style={eyebrow}>Categories / checklist</div>
+            <h1 style={workspaceTitle}>Checklist workspace</h1>
+          </div>
+          <span style={progressBadge}>{progress}% complete</span>
+        </div>
+
+        <p style={progressCopy}>Choose a category to update accounts, open guided task details, or add custom checklist items.</p>
+
+        <div style={checklistOverviewCard}>
+          <div style={recommendationHeader}>
+            <div>
+              <div style={eyebrow}>Checklist overview</div>
+              <h2 style={recommendationTitle}>All update categories</h2>
+            </div>
+            <span style={recommendationBadge}>{Object.keys(categories).length}</span>
+          </div>
+
+          {Object.keys(categories).map(cat => {
+            const { total, done } = getCategoryProgress(cat);
+            return (
+              <button key={cat} style={categoryBtn} onClick={() => {
+                openCategory(cat);
+              }}>
+                {cat} ({done}/{total})
+              </button>
+            );
+          })}
+        </div>
+      </Centered>
+    );
+  }
+
+  // ---------------- TASK ----------------
+  if (renderedView === "task") {
+    const selectedItem = categories[activeCategory].find(i => i.id === selectedItemId);
+    const selectedStatus = getItemStatus(selectedItem);
+
+    return (
+      <Centered>
+        {appNav}
+        <div style={workspaceHeader}>
+          <div>
+            <div style={eyebrow}>Guided task</div>
+            <h1 style={workspaceTitle}>{selectedItem.text}</h1>
+          </div>
+          <span style={selectedStatus === "completed" ? statusDone : selectedStatus === "in_progress" ? statusProgress : statusOpen}>
+            {getStatusLabel(selectedStatus)}
+          </span>
+        </div>
+
+        <div style={detailModal}>
+          <p style={actionCopy}>{getHelperText(activeCategory, selectedItem.text)}</p>
+
+          <div style={detailGrid}>
+            <div style={detailStat}>
+              <span style={infoLabel}>Category</span>
+              <strong style={detailValue}>{activeCategory}</strong>
+            </div>
+            <div style={detailStat}>
+              <span style={infoLabel}>Estimated time</span>
+              <strong style={detailValue}>{getEstimatedTime(activeCategory)}</strong>
+            </div>
+          </div>
+
+          <div style={linkCard}>
+            <span style={infoLabel}>Direct update link</span>
+            <a href={selectedItem.link} target="_blank" rel="noreferrer" style={detailLink}>
+              {selectedItem.link}
+            </a>
+          </div>
+
+          <div style={infoSection}>
+            <strong>Saved info</strong>
+            <div style={infoGrid}>
+              <span style={infoLabel}>Name</span>
+              <span style={infoValue}>{savedName || "Not added yet"}</span>
+              <span style={infoLabel}>Email</span>
+              <span style={infoValue}>{email || "Not added yet"}</span>
+              <span style={infoLabel}>Phone</span>
+              <span style={infoValue}>{phone || "Not added yet"}</span>
+              <span style={infoLabel}>Address</span>
+              <span style={infoValue}>{savedAddress || "Not added yet"}</span>
+            </div>
+
+            <div style={quickCopySectionCompact}>
+              <button onClick={() => copyText("detail-address", savedAddress)} style={copiedKey === "detail-address" ? copyBtnDone : copyBtn}>
+                {copiedKey === "detail-address" ? "Copied!" : "Copy Full Address"}
+              </button>
+              <button onClick={() => copyText("detail-email", email)} style={copiedKey === "detail-email" ? copyBtnDone : copyBtn}>
+                {copiedKey === "detail-email" ? "Copied!" : "Copy Email"}
+              </button>
+              <button onClick={() => copyText("detail-phone", phone)} style={copiedKey === "detail-phone" ? copyBtnDone : copyBtn}>
+                {copiedKey === "detail-phone" ? "Copied!" : "Copy Phone"}
+              </button>
+              <button onClick={() => copyText("detail-full", fullProfileText)} style={copiedKey === "detail-full" ? copyBtnDone : copyBtn}>
+                {copiedKey === "detail-full" ? "Copied!" : "Copy Full Profile"}
+              </button>
+            </div>
+          </div>
+
+          <div style={modalActions}>
+            <button onClick={() => openUpdatePage(selectedItem.link)} style={primaryBtn}>
+              Open Update Page
+            </button>
+            <button
+              onClick={() => updateItemStatus(activeCategory, selectedItem.id, "completed")}
+              style={selectedStatus === "completed" ? secondaryBtn : primaryBtn}
+            >
+              Mark Completed
+            </button>
+            <button onClick={() => openCategory(activeCategory)} style={secondaryBtn}>
+              Back to Category
+            </button>
+            <button onClick={goToDashboard} style={secondaryBtn}>
+              Dashboard
+            </button>
+          </div>
+        </div>
       </Centered>
     );
   }
 
   // ---------------- CATEGORY ----------------
-  if (view === "category") {
+  if (renderedView === "category") {
     const items = categories[activeCategory];
     const existing = items.map(i => i.text.toLowerCase());
-    const selectedItem = items.find(i => i.id === selectedItemId);
-    const selectedStatus = selectedItem ? getItemStatus(selectedItem) : "not_started";
 
     const suggestions = (masterLists[activeCategory] || []).filter(item =>
       item.name.toLowerCase().includes(newItem.toLowerCase()) &&
@@ -699,6 +1014,7 @@ function App() {
 
     return (
       <Centered>
+        {appNav}
         <h2>{activeCategory}</h2>
 
         <input placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} style={input} />
@@ -737,6 +1053,7 @@ function App() {
                 style={itemRowStyle}
                 onClick={() => {
                   setSelectedItemId(item.id);
+                  setCurrentView("task");
                   if (itemStatus === "not_started") updateItemStatus(activeCategory, item.id, "in_progress");
                 }}
               >
@@ -764,95 +1081,9 @@ function App() {
             );
           })}
 
-        {selectedItem && (
-          <div style={modalOverlay} onClick={closeDetailPanel}>
-            <div style={detailModal} onClick={(e) => e.stopPropagation()}>
-              <div style={actionHeader}>
-                <div>
-                  <div style={eyebrow}>Guided action</div>
-                  <h3 style={actionTitle}>{selectedItem.text}</h3>
-                </div>
-                <span style={selectedStatus === "completed" ? statusDone : selectedStatus === "in_progress" ? statusProgress : statusOpen}>
-                  {getStatusLabel(selectedStatus)}
-                </span>
-              </div>
-
-              <p style={actionCopy}>{getHelperText(activeCategory, selectedItem.text)}</p>
-
-              <div style={detailGrid}>
-                <div style={detailStat}>
-                  <span style={infoLabel}>Status</span>
-                  <strong style={detailValue}>{getStatusLabel(selectedStatus)}</strong>
-                </div>
-                <div style={detailStat}>
-                  <span style={infoLabel}>Estimated time</span>
-                  <strong style={detailValue}>{getEstimatedTime(activeCategory)}</strong>
-                </div>
-              </div>
-
-              <div style={linkCard}>
-                <span style={infoLabel}>Direct update link</span>
-                <a href={selectedItem.link} target="_blank" rel="noreferrer" style={detailLink}>
-                  {selectedItem.link}
-                </a>
-              </div>
-
-              <div style={infoSection}>
-                <strong>Saved info</strong>
-                <div style={infoGrid}>
-                  <span style={infoLabel}>Name</span>
-                  <span style={infoValue}>{savedName || "Not added yet"}</span>
-                  <span style={infoLabel}>Email</span>
-                  <span style={infoValue}>{email || "Not added yet"}</span>
-                  <span style={infoLabel}>Phone</span>
-                  <span style={infoValue}>{phone || "Not added yet"}</span>
-                  <span style={infoLabel}>Address</span>
-                  <span style={infoValue}>{savedAddress || "Not added yet"}</span>
-                </div>
-
-                <div style={quickCopySectionCompact}>
-                  <button onClick={() => copyText("detail-address", savedAddress)} style={copiedKey === "detail-address" ? copyBtnDone : copyBtn}>
-                    {copiedKey === "detail-address" ? "Copied!" : "Copy Full Address"}
-                  </button>
-                  <button onClick={() => copyText("detail-email", email)} style={copiedKey === "detail-email" ? copyBtnDone : copyBtn}>
-                    {copiedKey === "detail-email" ? "Copied!" : "Copy Email"}
-                  </button>
-                  <button onClick={() => copyText("detail-phone", phone)} style={copiedKey === "detail-phone" ? copyBtnDone : copyBtn}>
-                    {copiedKey === "detail-phone" ? "Copied!" : "Copy Phone"}
-                  </button>
-                  <button onClick={() => copyText("detail-full", fullProfileText)} style={copiedKey === "detail-full" ? copyBtnDone : copyBtn}>
-                    {copiedKey === "detail-full" ? "Copied!" : "Copy Full Profile"}
-                  </button>
-                </div>
-              </div>
-
-              <div style={modalActions}>
-                <button
-                  onClick={() => openUpdatePage(selectedItem.link)}
-                  style={primaryBtn}
-                >
-                  Open Update Page
-                </button>
-                <button
-                  onClick={() => {
-                    updateItemStatus(activeCategory, selectedItem.id, "completed");
-                  }}
-                  style={selectedStatus === "completed" ? secondaryBtn : primaryBtn}
-                >
-                  Mark Completed
-                </button>
-                <button onClick={closeDetailPanel} style={secondaryBtn}>
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
         <button
           onClick={() => {
-            setSelectedItemId(null);
-            setView("main");
+            openChecklist();
           }}
           style={secondaryBtn}
         >
@@ -862,87 +1093,91 @@ function App() {
     );
   }
 
+  if (isShowingSummary) {
+    return (
+      <Centered>
+        {appNav}
+        <div style={summaryCard}>
+          <h2 style={summaryTitle}>Summary</h2>
+          <p><strong>{progress}% complete</strong></p>
+
+          {Object.keys(categories).map(cat => {
+            const remaining = categories[cat].filter(i => getItemStatus(i) !== "completed");
+            if (!remaining.length) return null;
+
+            return (
+              <div key={cat} style={summaryGroup}>
+                <strong>{cat}</strong>
+                {remaining.map(i => (
+                  <div key={i.id}>• {i.text}</div>
+                ))}
+              </div>
+            );
+          })}
+
+          <button onClick={downloadChecklist} style={primaryBtn}>Download</button>
+          <button onClick={copyChecklist} style={secondaryBtn}>Copy</button>
+          <button onClick={() => setIsShowingSummary(false)} style={secondaryBtn}>Back</button>
+        </div>
+      </Centered>
+    );
+  }
+
   // ---------------- MAIN ----------------
   return (
     <Centered>
-      <h1>MoveMate</h1>
-
-      <div style={profileCard}>
-        <div style={profileHeader}>
-          <div>
-            <div style={eyebrow}>User address profile</div>
-            <h2 style={profileTitle}>Your Move Profile</h2>
-          </div>
-          <button onClick={() => setIsEditingProfile(!isEditingProfile)} style={editBtn}>
-            {isEditingProfile ? "Done" : "Edit"}
-          </button>
+      {appNav}
+      <div style={dashboardHero}>
+        <div>
+          <div style={eyebrow}>MoveMate dashboard</div>
+          <h1 style={dashboardTitle}>Your move command center</h1>
+          <p style={dashboardIntro}>
+            Track every address update from one place, focus on the highest-impact accounts, and keep your move details ready to copy.
+          </p>
         </div>
-
-        {!isEditingProfile && (
-          <div style={profileGrid}>
-            <div style={profileItem}>
-              <span style={infoLabel}>Full name</span>
-              <strong style={profileValue}>{savedName}</strong>
-            </div>
-            <div style={profileItem}>
-              <span style={infoLabel}>Email</span>
-              <strong style={profileValue}>{email}</strong>
-            </div>
-            <div style={profileItem}>
-              <span style={infoLabel}>Phone</span>
-              <strong style={profileValue}>{phone}</strong>
-            </div>
-            <div style={profileItemWide}>
-              <span style={infoLabel}>Full address</span>
-              <strong style={profileValue}>{savedAddress}</strong>
-            </div>
-          </div>
-        )}
-
-        {!isEditingProfile && (
-          <div style={quickCopySection}>
-            <button onClick={() => copyText("profile-address", savedAddress)} style={copiedKey === "profile-address" ? copyBtnDone : copyBtn}>
-              {copiedKey === "profile-address" ? "Copied!" : "Copy Full Address"}
-            </button>
-            <button onClick={() => copyText("profile-email", email)} style={copiedKey === "profile-email" ? copyBtnDone : copyBtn}>
-              {copiedKey === "profile-email" ? "Copied!" : "Copy Email"}
-            </button>
-            <button onClick={() => copyText("profile-phone", phone)} style={copiedKey === "profile-phone" ? copyBtnDone : copyBtn}>
-              {copiedKey === "profile-phone" ? "Copied!" : "Copy Phone"}
-            </button>
-            <button onClick={() => copyText("profile-full", fullProfileText)} style={copiedKey === "profile-full" ? copyBtnDone : copyBtn}>
-              {copiedKey === "profile-full" ? "Copied!" : "Copy Full Profile"}
-            </button>
-          </div>
-        )}
-
-        {isEditingProfile && (
-          <div style={profileForm}>
-            <input placeholder="First Name" value={firstName} onChange={(e) => setFirstName(e.target.value)} style={input} />
-            <input placeholder="Last Name" value={lastName} onChange={(e) => setLastName(e.target.value)} style={input} />
-
-            <input placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} style={input} />
-            <input placeholder="Phone" value={phone} onChange={(e) => setPhone(e.target.value)} style={input} />
-
-            <h3>New Address</h3>
-
-            <input placeholder="Street Address" value={street} onChange={(e) => setStreet(e.target.value)} style={input} />
-            <input placeholder="Address Line 2" value={address2} onChange={(e) => setAddress2(e.target.value)} style={input} />
-
-            <div style={{ display: "flex", gap: 14 }}>
-              <input placeholder="City" value={city} onChange={(e) => setCity(e.target.value)} style={input} />
-              <input placeholder="State" value={state} onChange={(e) => setState(e.target.value)} style={input} />
-            </div>
-
-            <div style={{ display: "flex", gap: 14 }}>
-              <input placeholder="Zip" value={zip} onChange={(e) => setZip(e.target.value)} style={input} />
-              <input placeholder="Country" value={country} onChange={(e) => setCountry(e.target.value)} style={input} />
-            </div>
-          </div>
-        )}
+        <span style={dashboardScore}>{progress}%</span>
       </div>
 
-      <p>Progress: {progress}%</p>
+      <div style={dashboardStatsGrid}>
+        <div style={dashboardStat}>
+          <span style={infoLabel}>Progress summary</span>
+          <strong style={dashboardStatValue}>{progressStats.completedCount} of {progressStats.completedCount + progressStats.remainingCount} updates complete</strong>
+        </div>
+        <div style={dashboardStat}>
+          <span style={infoLabel}>Estimated time saved</span>
+          <strong style={dashboardStatValue}>{progressStats.estimatedTimeSaved} minutes</strong>
+        </div>
+        <div style={dashboardStat}>
+          <span style={infoLabel}>Remaining work</span>
+          <strong style={dashboardStatValue}>{progressStats.remainingCount} important {progressStats.remainingCount === 1 ? "account" : "accounts"}</strong>
+        </div>
+      </div>
+
+      <div style={quickActionsCard}>
+        <div style={recommendationHeader}>
+          <div>
+            <div style={eyebrow}>Quick actions</div>
+            <h2 style={recommendationTitle}>Jump back in</h2>
+          </div>
+        </div>
+        <div style={quickActionsGrid}>
+          <button onClick={() => {
+            setIsEditingProfile(true);
+            openProfile();
+          }} style={quickActionBtn}>
+            Edit Move Profile
+          </button>
+          <button onClick={() => copyText("dashboard-full", fullProfileText)} style={copiedKey === "dashboard-full" ? copyBtnDone : quickActionBtn}>
+            {copiedKey === "dashboard-full" ? "Copied!" : "Copy Full Profile"}
+          </button>
+          <button onClick={() => setIsShowingSummary(true)} style={quickActionBtn}>
+            Review Summary
+          </button>
+          <button onClick={openChecklist} style={quickActionBtn}>
+            Open Checklist
+          </button>
+        </div>
+      </div>
 
       <div style={progressCard}>
         <div style={progressHeader}>
@@ -979,6 +1214,37 @@ function App() {
         </div>
       </div>
 
+      <div style={commonlyForgottenCard}>
+        <div style={recommendationHeader}>
+          <div>
+            <div style={eyebrow}>Commonly forgotten</div>
+            <h2 style={recommendationTitle}>Worth double-checking</h2>
+          </div>
+          <span style={recommendationBadge}>{commonlyForgotten.length}</span>
+        </div>
+
+        <div style={recommendationList}>
+          {(commonlyForgotten.length ? commonlyForgotten : [
+            {
+              cat: null,
+              title: "Nothing urgent is hiding here",
+              description: "Your commonly forgotten categories are either complete or not part of this checklist.",
+            },
+          ]).map(item => (
+            <button
+              key={item.title}
+              onClick={() => item.cat && openCategory(item.cat)}
+              style={item.cat ? recommendationItem : recommendationItemStatic}
+            >
+              <span style={recommendationText}>
+                <strong style={recommendationItemTitle}>{item.title}</strong>
+                <span style={recommendationDescription}>{item.description}</span>
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div style={recommendationCard}>
         <div style={recommendationHeader}>
           <div>
@@ -994,9 +1260,7 @@ function App() {
               key={`${item.cat || "complete"}-${item.title}`}
               onClick={() => {
                 if (!item.cat) return;
-                setActiveCategory(item.cat);
-                setSelectedItemId(null);
-                setView("category");
+                openCategory(item.cat);
               }}
               style={item.cat ? recommendationItem : recommendationItemStatic}
             >
@@ -1010,20 +1274,7 @@ function App() {
         </div>
       </div>
 
-      {Object.keys(categories).map(cat => {
-        const { total, done } = getCategoryProgress(cat);
-        return (
-          <button key={cat} style={categoryBtn} onClick={() => {
-            setActiveCategory(cat);
-            setSelectedItemId(null);
-            setView("category");
-          }}>
-            {cat} ({done}/{total})
-          </button>
-        );
-      })}
-
-      <button onClick={() => setView("summary")} style={primaryBtn}>
+      <button onClick={() => setIsShowingSummary(true)} style={primaryBtn}>
         Finish
       </button>
     </Centered>
@@ -1043,6 +1294,36 @@ const OnboardingShell = ({ children }) => (
   </div>
 );
 
+const AppNav = ({ currentView, canOpenTask, onDashboard, onProfile, onChecklist, onTask }) => (
+  <div style={appNav}>
+    <button
+      onClick={onDashboard}
+      style={currentView === "dashboard" ? appNavBtnActive : appNavBtn}
+    >
+      Dashboard
+    </button>
+    <button
+      onClick={onProfile}
+      style={currentView === "profile" ? appNavBtnActive : appNavBtn}
+    >
+      Move Profile
+    </button>
+    <button
+      onClick={onChecklist}
+      style={["checklist", "category"].includes(currentView) ? appNavBtnActive : appNavBtn}
+    >
+      Categories / Checklist
+    </button>
+    <button
+      onClick={onTask}
+      disabled={!canOpenTask}
+      style={currentView === "task" ? appNavBtnActive : canOpenTask ? appNavBtn : appNavBtnDisabled}
+    >
+      Tasks / Details
+    </button>
+  </div>
+);
+
 const panel = {
   width: "min(100%, 560px)",
   padding: 36,
@@ -1052,6 +1333,51 @@ const panel = {
   boxShadow: "var(--shadow)",
   boxSizing: "border-box",
   textAlign: "left",
+};
+
+const appNav = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+  gap: 10,
+  marginBottom: 28,
+  padding: 8,
+  border: "1px solid var(--border)",
+  borderRadius: 12,
+  background: "var(--category-bg)",
+};
+
+const appNavBtn = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "100%",
+  minHeight: 42,
+  padding: "10px 12px",
+  border: "1px solid transparent",
+  borderRadius: 10,
+  background: "transparent",
+  color: "var(--text-h)",
+  font: "inherit",
+  fontSize: 14,
+  fontWeight: 800,
+  cursor: "pointer",
+  boxSizing: "border-box",
+  letterSpacing: 0,
+};
+
+const appNavBtnActive = {
+  ...appNavBtn,
+  borderColor: "var(--accent-border)",
+  background: "var(--surface)",
+  color: "var(--accent-strong)",
+  boxShadow: "var(--shadow-subtle)",
+};
+
+const appNavBtnDisabled = {
+  ...appNavBtn,
+  color: "var(--text)",
+  cursor: "not-allowed",
+  opacity: 0.55,
 };
 
 const wizardPanel = {
@@ -1305,6 +1631,143 @@ const wizardSummaryValue = {
   lineHeight: "150%",
 };
 
+const summaryCard = {
+  marginBottom: 28,
+  padding: 22,
+  border: "1px solid var(--border)",
+  borderRadius: 12,
+  background: "var(--surface)",
+  boxShadow: "var(--shadow-hover)",
+};
+
+const summaryTitle = {
+  marginBottom: 12,
+};
+
+const summaryGroup = {
+  marginBottom: 12,
+};
+
+const dashboardHero = {
+  display: "flex",
+  alignItems: "flex-start",
+  justifyContent: "space-between",
+  gap: 18,
+  marginBottom: 24,
+};
+
+const dashboardTitle = {
+  margin: "2px 0 10px",
+};
+
+const workspaceHeader = {
+  display: "flex",
+  alignItems: "flex-start",
+  justifyContent: "space-between",
+  gap: 16,
+  marginBottom: 12,
+};
+
+const workspaceTitle = {
+  margin: "2px 0 0",
+};
+
+const dashboardIntro = {
+  marginBottom: 0,
+  fontSize: 16,
+};
+
+const dashboardScore = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: 72,
+  height: 72,
+  border: "1px solid var(--accent-border)",
+  borderRadius: 18,
+  background: "var(--accent-bg)",
+  color: "var(--accent-strong)",
+  fontSize: 22,
+  fontWeight: 900,
+  flex: "0 0 auto",
+};
+
+const dashboardStatsGrid = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+  gap: 12,
+  marginBottom: 24,
+};
+
+const dashboardStat = {
+  padding: 14,
+  border: "1px solid var(--border)",
+  borderRadius: 12,
+  background: "var(--surface)",
+  boxShadow: "var(--shadow-subtle)",
+};
+
+const dashboardStatValue = {
+  display: "block",
+  marginTop: 4,
+  lineHeight: "135%",
+};
+
+const quickActionsCard = {
+  marginBottom: 24,
+  padding: 22,
+  border: "1px solid var(--border)",
+  borderRadius: 12,
+  background: "var(--surface)",
+  boxShadow: "var(--shadow-hover)",
+};
+
+const quickActionsGrid = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+  gap: 10,
+};
+
+const quickActionBtn = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "100%",
+  minHeight: 48,
+  marginTop: 0,
+  padding: "12px 14px",
+  border: "1px solid var(--border)",
+  borderRadius: 12,
+  borderColor: "var(--border)",
+  background: "var(--secondary-bg)",
+  color: "var(--text-h)",
+  font: "inherit",
+  fontSize: 14,
+  fontWeight: 700,
+  cursor: "pointer",
+  boxSizing: "border-box",
+  letterSpacing: 0,
+  textDecoration: "none",
+};
+
+const commonlyForgottenCard = {
+  margin: "0 0 24px",
+  padding: 22,
+  border: "1px solid var(--border)",
+  borderRadius: 12,
+  background: "var(--surface)",
+  boxShadow: "var(--shadow-hover)",
+};
+
+const checklistOverviewCard = {
+  margin: "0 0 24px",
+  padding: 22,
+  border: "1px solid var(--border)",
+  borderRadius: 12,
+  background: "var(--surface)",
+  boxShadow: "var(--shadow-hover)",
+};
+
 const input = {
   width: "100%",
   padding: "14px 16px",
@@ -1445,18 +1908,6 @@ const suggestionItem = {
   transition: "background-color 0.18s ease, color 0.18s ease",
 };
 
-const modalOverlay = {
-  position: "fixed",
-  inset: 0,
-  zIndex: 20,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  padding: 20,
-  background: "rgba(15, 23, 42, 0.48)",
-  backdropFilter: "blur(8px)",
-};
-
 const detailModal = {
   width: "min(100%, 540px)",
   maxHeight: "calc(100svh - 40px)",
@@ -1468,26 +1919,12 @@ const detailModal = {
   boxShadow: "0 28px 80px rgba(15, 23, 42, 0.28)",
 };
 
-const actionHeader = {
-  display: "flex",
-  alignItems: "flex-start",
-  justifyContent: "space-between",
-  gap: 16,
-  marginBottom: 12,
-};
-
 const eyebrow = {
   color: "var(--accent)",
   fontSize: 12,
   fontWeight: 800,
   letterSpacing: 0.4,
   textTransform: "uppercase",
-};
-
-const actionTitle = {
-  margin: "2px 0 0",
-  paddingTop: 0,
-  borderTop: "none",
 };
 
 const statusOpen = {
