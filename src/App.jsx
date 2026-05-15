@@ -290,7 +290,15 @@ function App() {
     setNewItem("");
   };
 
-  const closeDetailPanel = goToWelcome;
+  const closeDetailPanel = () => {
+    if (activeCategory && categories[activeCategory]) {
+      setCurrentView("category");
+      setSelectedItemId(null);
+      return;
+    }
+
+    goToWelcome();
+  };
 
   const openProfile = () => {
     setCurrentView("profile");
@@ -318,22 +326,26 @@ function App() {
 
     return (
       afterCurrent.find(item => getItemStatus(item) !== "completed") ||
-      items.find(item => item.id !== currentId && getItemStatus(item) !== "completed") ||
-      items.find(item => item.id !== currentId) ||
+      afterCurrent[0] ||
       null
     );
   };
 
   const openCategory = (cat) => {
-    const nextTask = findNextTask(cat);
     setActiveCategory(cat);
-    setSelectedItemId(nextTask ? nextTask.id : null);
+    setSelectedItemId(null);
     setSearch("");
     setNewItem("");
-    if (nextTask && getItemStatus(nextTask) === "not_started") {
-      updateItemStatus(cat, nextTask.id, "in_progress");
+    setCurrentView("category");
+  };
+
+  const openTask = (cat, item) => {
+    setActiveCategory(cat);
+    setSelectedItemId(item.id);
+    setCurrentView("task");
+    if (getItemStatus(item) === "not_started") {
+      updateItemStatus(cat, item.id, "in_progress");
     }
-    setCurrentView(nextTask ? "task" : "complete");
   };
 
   const goToNextTask = () => {
@@ -352,7 +364,13 @@ function App() {
       return;
     }
 
-    setCurrentView("complete");
+    if (progressStats.remainingCount === 0) {
+      setCurrentView("complete");
+      return;
+    }
+
+    setSelectedItemId(null);
+    setCurrentView("category");
   };
 
   const markSelectedTaskComplete = () => {
@@ -649,7 +667,8 @@ function App() {
   const renderedView = (() => {
     if (!hasCompletedOnboarding || currentView === "onboarding") return "onboarding";
     if (currentView === "profile") return "profile";
-    if (["categories", "checklist", "category"].includes(currentView)) return "categories";
+    if (currentView === "category" && activeCategory && categories[activeCategory]) return "category";
+    if (["categories", "checklist"].includes(currentView)) return "categories";
     if (
       currentView === "task" &&
       activeCategory &&
@@ -910,7 +929,7 @@ function App() {
           <span style={progressBadge}>{progress}% complete</span>
         </div>
 
-        <p style={progressCopy}>Select a category and MoveMate will guide you through one task at a time.</p>
+        <p style={progressCopy}>Select a category to review its saved services before choosing the exact update to work on.</p>
 
         <div style={checklistOverviewCard}>
           <div style={recommendationHeader}>
@@ -1020,8 +1039,8 @@ function App() {
             <button onClick={goToNextTask} style={secondaryBtn}>
               Next Task
             </button>
-            <button onClick={openChecklist} style={secondaryBtn}>
-              Choose Another Category
+            <button onClick={closeDetailPanel} style={secondaryBtn}>
+              Back to Category
             </button>
           </div>
         </div>
@@ -1033,6 +1052,8 @@ function App() {
   if (renderedView === "category") {
     const items = categories[activeCategory];
     const existing = items.map(i => i.text.toLowerCase());
+    const categoryProgress = getCategoryProgress(activeCategory);
+    const isCategoryComplete = items.length > 0 && categoryProgress.done === categoryProgress.total;
 
     const suggestions = (masterLists[activeCategory] || []).filter(item =>
       item.name.toLowerCase().includes(newItem.toLowerCase()) &&
@@ -1041,7 +1062,24 @@ function App() {
 
     return (
       <Centered>
-        <h2>{activeCategory}</h2>
+        <div style={workspaceHeader}>
+          <div>
+            <div style={eyebrow}>Step 3 of 5</div>
+            <h1 style={workspaceTitle}>{activeCategory}</h1>
+          </div>
+          <span style={progressBadge}>{categoryProgress.done}/{categoryProgress.total} done</span>
+        </div>
+
+        <p style={progressCopy}>
+          Choose a specific service to open the guided action, or add a new item for this category.
+        </p>
+
+        {isCategoryComplete && (
+          <div style={summaryCard}>
+            <div style={eyebrow}>Category complete</div>
+            <p style={progressCopy}>Every saved item in {activeCategory} is marked complete. You can choose another category or add another service.</p>
+          </div>
+        )}
 
         <input placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} style={input} />
 
@@ -1077,11 +1115,7 @@ function App() {
               <div
                 key={item.id}
                 style={itemRowStyle}
-                onClick={() => {
-                  setSelectedItemId(item.id);
-                  setCurrentView("task");
-                  if (itemStatus === "not_started") updateItemStatus(activeCategory, item.id, "in_progress");
-                }}
+                onClick={() => openTask(activeCategory, item)}
               >
                 <div>
                   <span style={itemStatus === "completed" ? checkmarkDone : checkmark}>
@@ -1113,7 +1147,7 @@ function App() {
           }}
           style={secondaryBtn}
         >
-          Back
+          Back to Categories
         </button>
       </Centered>
     );
