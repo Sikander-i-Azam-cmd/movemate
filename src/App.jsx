@@ -8,6 +8,7 @@ function App() {
   const [search, setSearch] = useState("");
   const [copiedKey, setCopiedKey] = useState("");
   const [selectedFlowCategories, setSelectedFlowCategories] = useState([]);
+  const [summaryMode, setSummaryMode] = useState("selected");
 
   // ---------------- USER INFO ----------------
   const [firstName, setFirstName] = useState(() => localStorage.getItem("mm-first") || "");
@@ -404,9 +405,63 @@ function App() {
     setCurrentView("categories");
     setActiveCategory(null);
     setSelectedItemId(null);
-    setSelectedFlowCategories([]);
     setSearch("");
     setNewItem("");
+  };
+
+  const startGuidedFlow = () => {
+    const profileKeys = [
+      "mm-first",
+      "mm-last",
+      "mm-email",
+      "mm-phone",
+      "mm-street",
+      "mm-address2",
+      "mm-city",
+      "mm-state",
+      "mm-zip",
+      "mm-country",
+    ];
+
+    profileKeys.forEach(key => localStorage.removeItem(key));
+    localStorage.setItem("movemate-categories", JSON.stringify(defaultCategories));
+    localStorage.setItem("movemate-onboarding-complete", "true");
+    localStorage.setItem("movemate-onboarding-categories", JSON.stringify(onboardingCategoryOptions.map(option => option.key)));
+    localStorage.removeItem("movemate-current-view");
+    localStorage.removeItem("movemate-active-category");
+    localStorage.removeItem("movemate-selected-item");
+
+    setFirstName("");
+    setLastName("");
+    setEmail("");
+    setPhone("");
+    setStreet("");
+    setAddress2("");
+    setCity("");
+    setState("");
+    setZip("");
+    setCountry("");
+    setCategories(defaultCategories);
+    setSelectedOnboardingCategories(onboardingCategoryOptions.map(option => option.key));
+    setSelectedFlowCategories([]);
+    setSummaryMode("selected");
+    setActiveCategory(null);
+    setSelectedItemId(null);
+    setSearch("");
+    setNewItem("");
+    setCopiedKey("");
+    setIsEditingProfile(false);
+    setHasCompletedOnboarding(true);
+    setCurrentView("profile");
+  };
+
+  const openOverallSummary = () => {
+    setSummaryMode("overall");
+    setActiveCategory(null);
+    setSelectedItemId(null);
+    setSearch("");
+    setNewItem("");
+    setCurrentView("complete");
   };
 
   const selectCategory = (cat) => {
@@ -536,7 +591,7 @@ function App() {
   const generateSummaryText = () => {
     let text = "MoveMate Summary\n\n";
     text += `Overall progress: ${progress}%\n`;
-    text += `Selected categories: ${selectedSummaryCategories.join(", ")}\n\n`;
+    text += `${summaryMode === "overall" ? "Categories included" : "Selected categories"}: ${selectedSummaryCategories.join(", ")}\n\n`;
     selectedSummaryCategories.forEach(cat => {
       if (!categories[cat]) return;
       text += `${cat}\n`;
@@ -606,7 +661,7 @@ function App() {
     selectedItemId &&
     categories[activeCategory]?.some(item => item.id === selectedItemId)
   );
-  const selectedSummaryCategories = selectedFlowCategories.length ? selectedFlowCategories : Object.keys(categories);
+  const selectedSummaryCategories = summaryMode === "overall" || !selectedFlowCategories.length ? Object.keys(categories) : selectedFlowCategories;
 
   const onboardingProgress = Math.round(((onboardingStep + 1) / onboardingSteps.length) * 100);
   const renderedView = (() => {
@@ -906,6 +961,9 @@ function App() {
         >
           Next
         </button>
+        <button onClick={openOverallSummary} style={secondaryBtn}>
+          View Overall Summary
+        </button>
         <button onClick={openProfile} style={secondaryBtn}>
           Back
         </button>
@@ -989,9 +1047,6 @@ function App() {
               style={selectedStatus === "completed" ? secondaryBtn : primaryBtn}
             >
               Mark Completed
-            </button>
-            <button onClick={() => setCurrentView("complete")} style={secondaryBtn}>
-              View Summary
             </button>
             <button onClick={closeDetailPanel} style={secondaryBtn}>
               Back to {activeCategory}
@@ -1082,7 +1137,6 @@ function App() {
                 </div>
 
                 <div style={{ display: "flex", gap: 20 }}>
-                  {item.link && <a href={item.link} target="_blank" onClick={(e) => e.stopPropagation()}>Go</a>}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -1136,7 +1190,7 @@ function App() {
           <h2 style={summaryTitle}>MoveMate Summary</h2>
           <p><strong>{progress}% complete</strong></p>
           <p style={progressCopy}>Estimated time saved: {estimatedTimeSaved} minutes</p>
-          <p style={progressCopy}>Selected categories: {selectedSummaryCategories.join(", ")}</p>
+          <p style={progressCopy}>{summaryMode === "overall" ? "Categories included" : "Selected categories"}: {selectedSummaryCategories.join(", ")}</p>
 
           <div style={summaryGroup}>
             <strong>Completed items</strong>
@@ -1173,14 +1227,8 @@ function App() {
         </div>
       </div>
 
-      <button onClick={openProfile} style={primaryBtn}>
+      <button onClick={startGuidedFlow} style={primaryBtn}>
         Start Guided Flow
-      </button>
-      <button onClick={openChecklist} style={secondaryBtn}>
-        Choose a Category
-      </button>
-      <button onClick={() => setCurrentView("complete")} style={secondaryBtn}>
-        View Progress
       </button>
     </Centered>
   );
