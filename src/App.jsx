@@ -1,15 +1,13 @@
 import { useState, useEffect } from "react"; console.log("new version");
 
 function App() {
-  const [activeCategory, setActiveCategory] = useState(() => localStorage.getItem("movemate-active-category") || null);
-  const [selectedItemId, setSelectedItemId] = useState(() => {
-    const savedItemId = Number(localStorage.getItem("movemate-selected-item"));
-    return Number.isFinite(savedItemId) && savedItemId > 0 ? savedItemId : null;
-  });
+  const [activeCategory, setActiveCategory] = useState(null);
+  const [selectedItemId, setSelectedItemId] = useState(null);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [newItem, setNewItem] = useState("");
   const [search, setSearch] = useState("");
   const [copiedKey, setCopiedKey] = useState("");
+  const [selectedFlowCategories, setSelectedFlowCategories] = useState([]);
 
   // ---------------- USER INFO ----------------
   const [firstName, setFirstName] = useState(() => localStorage.getItem("mm-first") || "");
@@ -94,6 +92,51 @@ function App() {
       { name: "Fifth Third Bank", link: "https://www.53.com" },
     ],
 
+    "Credit Cards": [
+      { name: "Capital One", link: "https://www.capitalone.com" },
+      { name: "American Express", link: "https://www.americanexpress.com" },
+      { name: "Chase Credit Cards", link: "https://creditcards.chase.com" },
+      { name: "Citi Cards", link: "https://www.citi.com/credit-cards" },
+      { name: "Discover", link: "https://www.discover.com" },
+      { name: "Bank of America Credit Cards", link: "https://www.bankofamerica.com/credit-cards" },
+      { name: "Wells Fargo Credit Cards", link: "https://www.wellsfargo.com/credit-cards" },
+      { name: "Barclays", link: "https://cards.barclaycardus.com" },
+      { name: "Synchrony", link: "https://www.synchrony.com" },
+      { name: "US Bank Credit Cards", link: "https://www.usbank.com/credit-cards.html" },
+      { name: "Navy Federal Credit Union", link: "https://www.navyfederal.org" },
+      { name: "Apple Card", link: "https://card.apple.com" },
+    ],
+
+    Insurance: [
+      { name: "State Farm", link: "https://www.statefarm.com" },
+      { name: "GEICO", link: "https://www.geico.com" },
+      { name: "Progressive", link: "https://www.progressive.com" },
+      { name: "Allstate", link: "https://www.allstate.com" },
+      { name: "Liberty Mutual", link: "https://www.libertymutual.com" },
+      { name: "Farmers Insurance", link: "https://www.farmers.com" },
+      { name: "Nationwide", link: "https://www.nationwide.com" },
+      { name: "USAA", link: "https://www.usaa.com" },
+      { name: "Travelers", link: "https://www.travelers.com" },
+      { name: "Lemonade", link: "https://www.lemonade.com" },
+      { name: "Aetna", link: "https://www.aetna.com" },
+      { name: "Blue Cross Blue Shield", link: "https://www.bcbs.com" },
+    ],
+
+    Utilities: [
+      { name: "Electric Provider", link: "https://www.google.com/search?q=electric+provider+change+address" },
+      { name: "Gas Provider", link: "https://www.google.com/search?q=gas+provider+change+address" },
+      { name: "Water Utility", link: "https://www.google.com/search?q=water+utility+change+address" },
+      { name: "Trash / Recycling Service", link: "https://www.google.com/search?q=trash+recycling+service+change+address" },
+      { name: "Xfinity", link: "https://www.xfinity.com" },
+      { name: "Spectrum", link: "https://www.spectrum.com" },
+      { name: "AT&T Internet", link: "https://www.att.com/internet" },
+      { name: "Verizon", link: "https://www.verizon.com" },
+      { name: "T-Mobile Home Internet", link: "https://www.t-mobile.com/home-internet" },
+      { name: "Cox", link: "https://www.cox.com" },
+      { name: "Optimum", link: "https://www.optimum.com" },
+      { name: "Frontier", link: "https://frontier.com" },
+    ],
+
     "Delivery Apps": [
       { name: "DoorDash", link: "https://www.doordash.com" },
       { name: "Uber Eats", link: "https://www.ubereats.com" },
@@ -120,6 +163,70 @@ function App() {
       { name: "Max (HBO)", link: "https://www.max.com" },
       { name: "Peacock", link: "https://www.peacocktv.com" },
       { name: "Paramount+", link: "https://www.paramountplus.com" },
+      { name: "Apple TV+", link: "https://tv.apple.com" },
+      { name: "SiriusXM", link: "https://www.siriusxm.com" },
+      { name: "Audible", link: "https://www.audible.com" },
+      { name: "The New York Times", link: "https://www.nytimes.com" },
+      { name: "Costco", link: "https://www.costco.com" },
+      { name: "Sam's Club", link: "https://www.samsclub.com" },
+    ],
+
+    "Shopping / Ecommerce": [
+      { name: "Amazon", link: "https://www.amazon.com" },
+      { name: "Walmart", link: "https://www.walmart.com" },
+      { name: "Target", link: "https://www.target.com" },
+      { name: "eBay", link: "https://www.ebay.com" },
+      { name: "Etsy", link: "https://www.etsy.com" },
+      { name: "Best Buy", link: "https://www.bestbuy.com" },
+      { name: "Home Depot", link: "https://www.homedepot.com" },
+      { name: "Lowe's", link: "https://www.lowes.com" },
+      { name: "Wayfair", link: "https://www.wayfair.com" },
+      { name: "Chewy", link: "https://www.chewy.com" },
+      { name: "Macy's", link: "https://www.macys.com" },
+      { name: "Nordstrom", link: "https://www.nordstrom.com" },
+    ],
+
+    "Government / DMV": [
+      { name: "DMV", link: "https://www.usa.gov/motor-vehicle-services" },
+      { name: "USPS Change of Address", link: "https://moversguide.usps.com" },
+      { name: "IRS", link: "https://www.irs.gov/forms-pubs/about-form-8822" },
+      { name: "Voter Registration", link: "https://vote.gov" },
+      { name: "Social Security Administration", link: "https://www.ssa.gov" },
+      { name: "Medicare", link: "https://www.medicare.gov" },
+      { name: "Passport Services", link: "https://travel.state.gov" },
+      { name: "Selective Service", link: "https://www.sss.gov" },
+      { name: "State Tax Agency", link: "https://www.google.com/search?q=state+tax+agency+change+address" },
+      { name: "County Clerk", link: "https://www.google.com/search?q=county+clerk+change+address" },
+    ],
+
+    Healthcare: [
+      { name: "Health Insurance Provider", link: "https://www.google.com/search?q=health+insurance+provider+change+address" },
+      { name: "Primary Care Doctor", link: "https://www.google.com/search?q=primary+care+doctor+change+address" },
+      { name: "Dentist", link: "https://www.google.com/search?q=dentist+change+address" },
+      { name: "Vision Provider", link: "https://www.google.com/search?q=vision+provider+change+address" },
+      { name: "Pharmacy", link: "https://www.google.com/search?q=pharmacy+change+address" },
+      { name: "CVS", link: "https://www.cvs.com" },
+      { name: "Walgreens", link: "https://www.walgreens.com" },
+      { name: "Kaiser Permanente", link: "https://healthy.kaiserpermanente.org" },
+      { name: "UnitedHealthcare", link: "https://www.uhc.com" },
+      { name: "Cigna", link: "https://www.cigna.com" },
+      { name: "Humana", link: "https://www.humana.com" },
+      { name: "HSA Provider", link: "https://www.google.com/search?q=HSA+provider+change+address" },
+    ],
+
+    "Work / Payroll": [
+      { name: "Employer Payroll", link: "https://www.google.com/search?q=employer+payroll+change+address" },
+      { name: "ADP", link: "https://www.adp.com" },
+      { name: "Workday", link: "https://www.workday.com" },
+      { name: "Paychex", link: "https://www.paychex.com" },
+      { name: "Gusto", link: "https://gusto.com" },
+      { name: "BambooHR", link: "https://www.bamboohr.com" },
+      { name: "UKG", link: "https://www.ukg.com" },
+      { name: "Fidelity 401(k)", link: "https://www.fidelity.com" },
+      { name: "Vanguard 401(k)", link: "https://investor.vanguard.com" },
+      { name: "Principal", link: "https://www.principal.com" },
+      { name: "Empower", link: "https://www.empower.com" },
+      { name: "Health Benefits Portal", link: "https://www.google.com/search?q=employee+health+benefits+portal+change+address" },
     ],
   };
 
@@ -178,7 +285,7 @@ function App() {
     return completedOnboarding || finishedWizard || (!startedOnboarding && Boolean(hasExistingMoveMateData()));
   });
   const [currentView, setCurrentView] = useState(() => (
-    hasCompletedOnboarding ? (localStorage.getItem("movemate-current-view") || "welcome") : "onboarding"
+    hasCompletedOnboarding ? "welcome" : "onboarding"
   ));
   const [onboardingStep, setOnboardingStep] = useState(() => {
     const savedStep = Number(localStorage.getItem("movemate-onboarding-step"));
@@ -207,25 +314,10 @@ function App() {
   }, [hasCompletedOnboarding]);
 
   useEffect(() => {
-    if (!hasCompletedOnboarding) return;
-    localStorage.setItem("movemate-current-view", currentView);
-  }, [currentView, hasCompletedOnboarding]);
-
-  useEffect(() => {
-    if (activeCategory) {
-      localStorage.setItem("movemate-active-category", activeCategory);
-    } else {
-      localStorage.removeItem("movemate-active-category");
-    }
-  }, [activeCategory]);
-
-  useEffect(() => {
-    if (selectedItemId) {
-      localStorage.setItem("movemate-selected-item", String(selectedItemId));
-    } else {
-      localStorage.removeItem("movemate-selected-item");
-    }
-  }, [selectedItemId]);
+    localStorage.removeItem("movemate-current-view");
+    localStorage.removeItem("movemate-active-category");
+    localStorage.removeItem("movemate-selected-item");
+  }, []);
 
   useEffect(() => {
     localStorage.setItem("movemate-onboarding-step", String(onboardingStep));
@@ -312,27 +404,24 @@ function App() {
     setCurrentView("categories");
     setActiveCategory(null);
     setSelectedItemId(null);
+    setSelectedFlowCategories([]);
     setSearch("");
     setNewItem("");
   };
 
-  const findNextTask = (cat, currentId = null) => {
-    const items = categories[cat] || [];
-    const currentIndex = currentId ? items.findIndex(item => item.id === currentId) : -1;
-    const afterCurrent = currentIndex >= 0 ? items.slice(currentIndex + 1) : items;
-    if (!currentId) {
-      return items.find(item => getItemStatus(item) !== "completed") || items[0] || null;
-    }
-
-    return (
-      afterCurrent.find(item => getItemStatus(item) !== "completed") ||
-      afterCurrent[0] ||
-      null
-    );
+  const selectCategory = (cat) => {
+    setSelectedFlowCategories(selected => (
+      selected.includes(cat)
+        ? selected.filter(item => item !== cat)
+        : [...selected, cat]
+    ));
+    setSelectedItemId(null);
   };
 
-  const openCategory = (cat) => {
-    setActiveCategory(cat);
+  const continueToCategory = () => {
+    const nextCategory = selectedFlowCategories.find(cat => categories[cat]) || activeCategory;
+    if (!nextCategory || !categories[nextCategory]) return;
+    setActiveCategory(nextCategory);
     setSelectedItemId(null);
     setSearch("");
     setNewItem("");
@@ -348,29 +437,11 @@ function App() {
     }
   };
 
-  const goToNextTask = () => {
-    if (!activeCategory) {
-      setCurrentView("categories");
-      return;
-    }
-
-    const nextTask = findNextTask(activeCategory, selectedItemId);
-    if (nextTask) {
-      setSelectedItemId(nextTask.id);
-      if (getItemStatus(nextTask) === "not_started") {
-        updateItemStatus(activeCategory, nextTask.id, "in_progress");
-      }
-      setCurrentView("task");
-      return;
-    }
-
-    if (progressStats.remainingCount === 0) {
-      setCurrentView("complete");
-      return;
-    }
-
-    setSelectedItemId(null);
-    setCurrentView("category");
+  const continueToSelectedTask = () => {
+    if (!activeCategory || !categories[activeCategory] || !selectedItemId) return;
+    const selectedItem = categories[activeCategory].find(item => item.id === selectedItemId);
+    if (!selectedItem) return;
+    openTask(activeCategory, selectedItem);
   };
 
   const markSelectedTaskComplete = () => {
@@ -439,146 +510,10 @@ function App() {
     return all.length ? Math.round((done / all.length) * 100) : 0;
   })();
 
-  const progressStats = (() => {
-    const categoryEntries = Object.entries(categories);
-    const all = categoryEntries.flatMap(([, items]) => items);
-    const completedCount = all.filter(i => getItemStatus(i) === "completed").length;
-    const remainingCount = all.length - completedCount;
-    const estimatedTimeSaved = categoryEntries.reduce((total, [cat, items]) => {
-      const completedItems = items.filter(i => getItemStatus(i) === "completed").length;
-      return total + completedItems * getSavedTimeEstimate(cat);
-    }, 0);
-
-    return {
-      completedCount,
-      remainingCount,
-      estimatedTimeSaved,
-    };
-  })();
-
-  const progressMessage = (() => {
-    if (progressStats.completedCount === 0) {
-      return "Start with one quick update to build momentum.";
-    }
-
-    if (progress === 100) {
-      return "All set. Your move updates are complete.";
-    }
-
-    if (progress >= 70) {
-      return "You're in the home stretch. A few important updates remain.";
-    }
-
-    if (progress >= 35) {
-      return "Nice progress. Your most important accounts are getting aligned.";
-    }
-
-    return "Every completed update reduces missed mail and account friction.";
-  })();
-
-  const recommendedNextSteps = (() => {
-    const priorityOrder = [
-      "Government / DMV",
-      "Utilities",
-      "Banks",
-      "Credit Cards",
-      "Insurance",
-      "Healthcare",
-      "Work / Payroll",
-      "Shopping / Ecommerce",
-      "Delivery Apps",
-      "Subscriptions",
-    ];
-
-    const categorySummaries = Object.entries(categories)
-      .map(([cat, items]) => {
-        const remaining = items.filter(i => getItemStatus(i) !== "completed");
-        return {
-          cat,
-          remaining,
-          remainingCount: remaining.length,
-          priority: priorityOrder.indexOf(cat) === -1 ? priorityOrder.length : priorityOrder.indexOf(cat),
-        };
-      })
-      .filter(summary => summary.remainingCount > 0)
-      .sort((a, b) => a.priority - b.priority || b.remainingCount - a.remainingCount);
-
-    const recommendations = [];
-    const addRecommendation = (cat, title, description) => {
-      if (recommendations.some(item => item.cat === cat) || recommendations.length >= 3) return;
-      recommendations.push({ cat, title, description });
-    };
-
-    const government = categorySummaries.find(item => item.cat === "Government / DMV");
-    if (government) {
-      addRecommendation(
-        government.cat,
-        "Update DMV next",
-        "Government records are often required for IDs, registration, and official mail."
-      );
-    }
-
-    const utilities = categorySummaries.find(item => item.cat === "Utilities");
-    if (utilities) {
-      addRecommendation(
-        utilities.cat,
-        "Utilities are commonly forgotten",
-        "Handle service providers early to avoid missed notices or billing confusion."
-      );
-    }
-
-    const financialRemaining = ["Banks", "Credit Cards"].reduce((total, cat) => {
-      const items = categories[cat] || [];
-      return total + items.filter(i => getItemStatus(i) !== "completed").length;
-    }, 0);
-    const firstFinancialCategory = categorySummaries.find(item => ["Banks", "Credit Cards"].includes(item.cat));
-
-    if (financialRemaining > 0 && firstFinancialCategory) {
-      addRecommendation(
-        firstFinancialCategory.cat,
-        `You still have ${financialRemaining} financial ${financialRemaining === 1 ? "account" : "accounts"} remaining`,
-        "Banks and cards are high-impact updates because they affect statements, cards, and verification."
-      );
-    }
-
-    categorySummaries.forEach(({ cat, remainingCount }) => {
-      addRecommendation(
-        cat,
-        `${cat} has ${remainingCount} ${remainingCount === 1 ? "task" : "tasks"} left`,
-        "This category has the most remaining work and is a good next focus."
-      );
-    });
-
-    if (!recommendations.length) {
-      return [
-        {
-          cat: null,
-          title: "Everything is complete",
-          description: "Your checklist is wrapped up. You can download or copy your summary anytime.",
-        },
-      ];
-    }
-
-    return recommendations.slice(0, 3);
-  })();
-
-  const commonlyForgotten = [
-    {
-      cat: "Utilities",
-      title: "Utilities and service providers",
-      description: "Avoid billing confusion and missed notices after your move.",
-    },
-    {
-      cat: "Government / DMV",
-      title: "DMV and government records",
-      description: "Keep registration, IDs, and official mail aligned.",
-    },
-    {
-      cat: "Healthcare",
-      title: "Healthcare and benefits",
-      description: "Update benefits, claims, and provider records before mail gets missed.",
-    },
-  ].filter(item => categories[item.cat]?.some(task => getItemStatus(task) !== "completed"));
+  const estimatedTimeSaved = Object.entries(categories).reduce((total, [cat, items]) => {
+    const completedItems = items.filter(item => getItemStatus(item) === "completed").length;
+    return total + completedItems * getSavedTimeEstimate(cat);
+  }, 0);
 
   const savedName = `${firstName} ${lastName}`.trim();
   const savedAddress = [street, address2, city, state, zip, country].filter(Boolean).join(", ");
@@ -599,8 +534,11 @@ function App() {
   };
 
   const generateSummaryText = () => {
-    let text = "MoveMate Checklist\n\n";
-    Object.keys(categories).forEach(cat => {
+    let text = "MoveMate Summary\n\n";
+    text += `Overall progress: ${progress}%\n`;
+    text += `Selected categories: ${selectedSummaryCategories.join(", ")}\n\n`;
+    selectedSummaryCategories.forEach(cat => {
+      if (!categories[cat]) return;
       text += `${cat}\n`;
       categories[cat].forEach(item => {
         text += `${getItemStatus(item) === "completed" ? "✔" : "•"} ${item.text}\n`;
@@ -662,6 +600,13 @@ function App() {
     setOnboardingStep(onboardingSteps.length - 1);
     setHasCompletedOnboarding(true);
   };
+
+  const hasSelectedTask = Boolean(
+    activeCategory &&
+    selectedItemId &&
+    categories[activeCategory]?.some(item => item.id === selectedItemId)
+  );
+  const selectedSummaryCategories = selectedFlowCategories.length ? selectedFlowCategories : Object.keys(categories);
 
   const onboardingProgress = Math.round(((onboardingStep + 1) / onboardingSteps.length) * 100);
   const renderedView = (() => {
@@ -943,17 +888,26 @@ function App() {
           {Object.keys(categories).map(cat => {
             const { total, done } = getCategoryProgress(cat);
             return (
-              <button key={cat} style={categoryBtn} onClick={() => {
-                openCategory(cat);
-              }}>
+              <button
+                key={cat}
+                style={selectedFlowCategories.includes(cat) ? categoryBtnSelected : categoryBtn}
+                onClick={() => selectCategory(cat)}
+              >
                 {cat} ({done}/{total})
               </button>
             );
           })}
         </div>
 
+        <button
+          onClick={continueToCategory}
+          style={selectedFlowCategories.length ? primaryBtn : primaryBtnDisabled}
+          disabled={!selectedFlowCategories.length}
+        >
+          Next
+        </button>
         <button onClick={openProfile} style={secondaryBtn}>
-          Back to Move Profile
+          Back
         </button>
       </Centered>
     );
@@ -968,7 +922,7 @@ function App() {
       <Centered>
         <div style={workspaceHeader}>
           <div>
-            <div style={eyebrow}>Step 4 of 5</div>
+            <div style={eyebrow}>Step 5 of 5</div>
             <h1 style={workspaceTitle}>{selectedItem.text}</h1>
           </div>
           <span style={selectedStatus === "completed" ? statusDone : selectedStatus === "in_progress" ? statusProgress : statusOpen}>
@@ -991,7 +945,7 @@ function App() {
           </div>
 
           <div style={linkCard}>
-            <span style={infoLabel}>Direct update link</span>
+            <span style={infoLabel}>Update page</span>
             <a href={selectedItem.link} target="_blank" rel="noreferrer" style={detailLink}>
               {selectedItem.link}
             </a>
@@ -1028,7 +982,7 @@ function App() {
 
           <div style={modalActions}>
             <button onClick={() => openUpdatePage(selectedItem.link)} style={primaryBtn}>
-              Open Update Page
+              Open {selectedItem.text} Page
             </button>
             <button
               onClick={markSelectedTaskComplete}
@@ -1036,11 +990,14 @@ function App() {
             >
               Mark Completed
             </button>
-            <button onClick={goToNextTask} style={secondaryBtn}>
-              Next Task
+            <button onClick={() => setCurrentView("complete")} style={secondaryBtn}>
+              View Summary
             </button>
             <button onClick={closeDetailPanel} style={secondaryBtn}>
-              Back to Category
+              Back to {activeCategory}
+            </button>
+            <button onClick={openChecklist} style={secondaryBtn}>
+              Back to Categories
             </button>
           </div>
         </div>
@@ -1064,7 +1021,7 @@ function App() {
       <Centered>
         <div style={workspaceHeader}>
           <div>
-            <div style={eyebrow}>Step 3 of 5</div>
+            <div style={eyebrow}>Step 4 of 5</div>
             <h1 style={workspaceTitle}>{activeCategory}</h1>
           </div>
           <span style={progressBadge}>{categoryProgress.done}/{categoryProgress.total} done</span>
@@ -1115,7 +1072,7 @@ function App() {
               <div
                 key={item.id}
                 style={itemRowStyle}
-                onClick={() => openTask(activeCategory, item)}
+                onClick={() => setSelectedItemId(item.id)}
               >
                 <div>
                   <span style={itemStatus === "completed" ? checkmarkDone : checkmark}>
@@ -1142,101 +1099,64 @@ function App() {
           })}
 
         <button
+          onClick={continueToSelectedTask}
+          style={hasSelectedTask ? primaryBtn : primaryBtnDisabled}
+          disabled={!hasSelectedTask}
+        >
+          Next
+        </button>
+        <button
           onClick={() => {
             openChecklist();
           }}
           style={secondaryBtn}
         >
-          Back to Categories
+          Back
         </button>
       </Centered>
     );
   }
 
   if (renderedView === "complete") {
+    const completedItems = selectedSummaryCategories.flatMap(cat => (
+      (categories[cat] || [])
+        .filter(item => getItemStatus(item) === "completed")
+        .map(item => ({ ...item, cat }))
+    ));
+    const remainingItems = selectedSummaryCategories.flatMap(cat => (
+      (categories[cat] || [])
+        .filter(item => getItemStatus(item) !== "completed")
+        .map(item => ({ ...item, cat }))
+    ));
+
     return (
       <Centered>
         <div style={summaryCard}>
-          <div style={eyebrow}>Step 5 of 5</div>
-          <h2 style={summaryTitle}>Completion / Progress</h2>
+          <div style={eyebrow}>Final summary</div>
+          <h2 style={summaryTitle}>MoveMate Summary</h2>
           <p><strong>{progress}% complete</strong></p>
+          <p style={progressCopy}>Estimated time saved: {estimatedTimeSaved} minutes</p>
+          <p style={progressCopy}>Selected categories: {selectedSummaryCategories.join(", ")}</p>
 
-          {Object.keys(categories).map(cat => {
-            const remaining = categories[cat].filter(i => getItemStatus(i) !== "completed");
-            if (!remaining.length) return null;
+          <div style={summaryGroup}>
+            <strong>Completed items</strong>
+            {completedItems.length ? completedItems.map(item => (
+              <div key={`${item.cat}-${item.id}`}>✓ {item.cat}: {item.text}</div>
+            )) : <div>None yet</div>}
+          </div>
 
-            return (
-              <div key={cat} style={summaryGroup}>
-                <strong>{cat}</strong>
-                {remaining.map(i => (
-                  <div key={i.id}>• {i.text}</div>
-                ))}
-              </div>
-            );
-          })}
+          <div style={summaryGroup}>
+            <strong>Remaining items</strong>
+            {remainingItems.length ? remainingItems.map(item => (
+              <div key={`${item.cat}-${item.id}`}>• {item.cat}: {item.text}</div>
+            )) : <div>Nothing remaining</div>}
+          </div>
 
           <div style={quickActionsGrid}>
-            <button onClick={downloadChecklist} style={primaryBtn}>Download</button>
+            <button onClick={downloadChecklist} style={primaryBtn}>Download Summary</button>
             <button onClick={copyChecklist} style={secondaryBtn}>Copy</button>
-            <button onClick={openChecklist} style={secondaryBtn}>Continue Updating</button>
-            <button onClick={goToWelcome} style={secondaryBtn}>Back to Overview</button>
-          </div>
-        </div>
-
-        <div style={commonlyForgottenCard}>
-          <div style={recommendationHeader}>
-            <div>
-              <div style={eyebrow}>Commonly forgotten</div>
-              <h2 style={recommendationTitle}>Worth double-checking</h2>
-            </div>
-            <span style={recommendationBadge}>{commonlyForgotten.length}</span>
-          </div>
-
-          <div style={recommendationList}>
-            {(commonlyForgotten.length ? commonlyForgotten : [
-              {
-                cat: null,
-                title: "Nothing urgent is hiding here",
-                description: "Your commonly forgotten categories are either complete or not part of this checklist.",
-              },
-            ]).map(item => (
-              <button
-                key={item.title}
-                onClick={() => item.cat && openCategory(item.cat)}
-                style={item.cat ? recommendationItem : recommendationItemStatic}
-              >
-                <span style={recommendationText}>
-                  <strong style={recommendationItemTitle}>{item.title}</strong>
-                  <span style={recommendationDescription}>{item.description}</span>
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div style={recommendationCard}>
-          <div style={recommendationHeader}>
-            <div>
-              <div style={eyebrow}>Recommended next</div>
-              <h2 style={recommendationTitle}>Focus your next update</h2>
-            </div>
-            <span style={recommendationBadge}>{recommendedNextSteps.length}</span>
-          </div>
-
-          <div style={recommendationList}>
-            {recommendedNextSteps.map((item, index) => (
-              <button
-                key={`${item.cat || "complete"}-${item.title}`}
-                onClick={() => item.cat && openCategory(item.cat)}
-                style={item.cat ? recommendationItem : recommendationItemStatic}
-              >
-                <span style={recommendationIcon}>{index + 1}</span>
-                <span style={recommendationText}>
-                  <strong style={recommendationItemTitle}>{item.title}</strong>
-                  <span style={recommendationDescription}>{item.description}</span>
-                </span>
-              </button>
-            ))}
+            <button onClick={openChecklist} style={secondaryBtn}>Back to Categories</button>
+            <button onClick={goToWelcome} style={secondaryBtn}>Return to Start</button>
           </div>
         </div>
       </Centered>
@@ -1250,60 +1170,6 @@ function App() {
         <div>
           <div style={eyebrow}>Step 1 of 5</div>
           <h1 style={dashboardTitle}>Ready to update your move details?</h1>
-          <p style={dashboardIntro}>
-            MoveMate guides you through your profile, categories, and one address-update task at a time.
-          </p>
-        </div>
-        <span style={dashboardScore}>{progress}%</span>
-      </div>
-
-      <div style={dashboardStatsGrid}>
-        <div style={dashboardStat}>
-          <span style={infoLabel}>Progress summary</span>
-          <strong style={dashboardStatValue}>{progressStats.completedCount} of {progressStats.completedCount + progressStats.remainingCount} updates complete</strong>
-        </div>
-        <div style={dashboardStat}>
-          <span style={infoLabel}>Estimated time saved</span>
-          <strong style={dashboardStatValue}>{progressStats.estimatedTimeSaved} minutes</strong>
-        </div>
-        <div style={dashboardStat}>
-          <span style={infoLabel}>Remaining work</span>
-          <strong style={dashboardStatValue}>{progressStats.remainingCount} important {progressStats.remainingCount === 1 ? "account" : "accounts"}</strong>
-        </div>
-      </div>
-
-      <div style={progressCard}>
-        <div style={progressHeader}>
-          <div>
-            <div style={eyebrow}>Move progress</div>
-            <h2 style={progressTitle}>{progress}% complete</h2>
-          </div>
-          <span style={progressBadge}>{progressStats.completedCount} done</span>
-        </div>
-
-        <p style={progressCopy}>{progressMessage}</p>
-
-        <div style={progressBarTrack}>
-          <div style={{ ...progressBarFill, width: `${progress}%` }} />
-        </div>
-
-        <div style={progressStatsGrid}>
-          <div style={progressStatItem}>
-            <span style={infoLabel}>Completed updates</span>
-            <strong style={progressStatValue}>
-              You've completed {progressStats.completedCount} {progressStats.completedCount === 1 ? "update" : "updates"}
-            </strong>
-          </div>
-          <div style={progressStatItem}>
-            <span style={infoLabel}>Estimated time saved</span>
-            <strong style={progressStatValue}>{progressStats.estimatedTimeSaved} minutes</strong>
-          </div>
-          <div style={progressStatItemWide}>
-            <span style={infoLabel}>Remaining important accounts</span>
-            <strong style={progressStatValue}>
-              {progressStats.remainingCount} important {progressStats.remainingCount === 1 ? "account" : "accounts"} remaining
-            </strong>
-          </div>
         </div>
       </div>
 
@@ -1636,60 +1502,10 @@ const workspaceTitle = {
   margin: "2px 0 0",
 };
 
-const dashboardIntro = {
-  marginBottom: 0,
-  fontSize: 16,
-};
-
-const dashboardScore = {
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  width: 72,
-  height: 72,
-  border: "1px solid var(--accent-border)",
-  borderRadius: 18,
-  background: "var(--accent-bg)",
-  color: "var(--accent-strong)",
-  fontSize: 22,
-  fontWeight: 900,
-  flex: "0 0 auto",
-};
-
-const dashboardStatsGrid = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
-  gap: 12,
-  marginBottom: 24,
-};
-
-const dashboardStat = {
-  padding: 14,
-  border: "1px solid var(--border)",
-  borderRadius: 12,
-  background: "var(--surface)",
-  boxShadow: "var(--shadow-subtle)",
-};
-
-const dashboardStatValue = {
-  display: "block",
-  marginTop: 4,
-  lineHeight: "135%",
-};
-
 const quickActionsGrid = {
   display: "grid",
   gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
   gap: 10,
-};
-
-const commonlyForgottenCard = {
-  margin: "0 0 24px",
-  padding: 22,
-  border: "1px solid var(--border)",
-  borderRadius: 12,
-  background: "var(--surface)",
-  boxShadow: "var(--shadow-hover)",
 };
 
 const checklistOverviewCard = {
@@ -1794,12 +1610,25 @@ const categoryBtn = {
   borderColor: "var(--border)",
 };
 
+const categoryBtnSelected = {
+  ...categoryBtn,
+  borderColor: "var(--accent-border)",
+  background: "var(--accent-bg)",
+  color: "var(--accent-strong)",
+};
+
 const primaryBtn = {
   ...buttonBase,
   marginTop: 14,
   background: "var(--accent)",
   color: "white",
   boxShadow: "0 10px 20px rgba(37, 99, 235, 0.18)",
+};
+
+const primaryBtnDisabled = {
+  ...primaryBtn,
+  opacity: 0.5,
+  cursor: "not-allowed",
 };
 
 const secondaryBtn = {
@@ -2048,28 +1877,6 @@ const copyBtnDone = {
   color: "#15803d",
 };
 
-const progressCard = {
-  margin: "0 0 24px",
-  padding: 22,
-  border: "1px solid var(--accent-border)",
-  borderRadius: 12,
-  background: "linear-gradient(180deg, var(--action-bg), var(--surface))",
-  boxShadow: "var(--shadow-hover)",
-};
-
-const progressHeader = {
-  display: "flex",
-  alignItems: "flex-start",
-  justifyContent: "space-between",
-  gap: 16,
-  marginBottom: 10,
-};
-
-const progressTitle = {
-  margin: "2px 0 0",
-  fontSize: 28,
-};
-
 const progressBadge = {
   padding: "6px 10px",
   borderRadius: 999,
@@ -2083,58 +1890,6 @@ const progressBadge = {
 const progressCopy = {
   marginBottom: 14,
   fontSize: 15,
-};
-
-const progressBarTrack = {
-  width: "100%",
-  height: 10,
-  marginBottom: 16,
-  overflow: "hidden",
-  borderRadius: 999,
-  background: "var(--secondary-bg)",
-  border: "1px solid var(--border)",
-};
-
-const progressBarFill = {
-  height: "100%",
-  borderRadius: 999,
-  background: "var(--accent)",
-  transition: "width 0.24s ease",
-};
-
-const progressStatsGrid = {
-  display: "grid",
-  gridTemplateColumns: "1fr 1fr",
-  gap: 12,
-};
-
-const progressStatItem = {
-  padding: 14,
-  border: "1px solid var(--border)",
-  borderRadius: 12,
-  background: "var(--surface)",
-  boxShadow: "var(--shadow-subtle)",
-};
-
-const progressStatItemWide = {
-  ...progressStatItem,
-  gridColumn: "1 / -1",
-};
-
-const progressStatValue = {
-  display: "block",
-  marginTop: 4,
-  color: "var(--text-h)",
-  lineHeight: "135%",
-};
-
-const recommendationCard = {
-  margin: "0 0 24px",
-  padding: 22,
-  border: "1px solid var(--border)",
-  borderRadius: 12,
-  background: "var(--surface)",
-  boxShadow: "var(--shadow-hover)",
 };
 
 const recommendationHeader = {
@@ -2162,59 +1917,6 @@ const recommendationBadge = {
   fontSize: 14,
   fontWeight: 900,
   flex: "0 0 auto",
-};
-
-const recommendationList = {
-  display: "grid",
-  gap: 10,
-};
-
-const recommendationItem = {
-  ...buttonBase,
-  width: "100%",
-  justifyContent: "flex-start",
-  gap: 12,
-  marginTop: 0,
-  padding: 14,
-  borderColor: "var(--border)",
-  background: "var(--row-bg)",
-  color: "var(--text-h)",
-  textAlign: "left",
-};
-
-const recommendationItemStatic = {
-  ...recommendationItem,
-  cursor: "default",
-};
-
-const recommendationIcon = {
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  width: 30,
-  height: 30,
-  borderRadius: 10,
-  background: "var(--accent-bg)",
-  color: "var(--accent-strong)",
-  fontSize: 13,
-  fontWeight: 900,
-  flex: "0 0 auto",
-};
-
-const recommendationText = {
-  display: "grid",
-  gap: 2,
-};
-
-const recommendationItemTitle = {
-  color: "var(--text-h)",
-  lineHeight: "130%",
-};
-
-const recommendationDescription = {
-  color: "var(--text)",
-  fontSize: 14,
-  lineHeight: "140%",
 };
 
 export default App;
