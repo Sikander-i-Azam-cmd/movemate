@@ -375,27 +375,27 @@ function App() {
       Banks: [
         `Log in to ${name}.`,
         "Go to Profile, Personal Info, or Account Settings.",
-        "Update your mailing address and confirm whether statements, tax forms, and replacement cards use the same address.",
+        "Update your mailing address and save the change.",
       ],
       "Credit Cards": [
         `Log in to ${name}.`,
         "Go to Profile, Account Settings, or Contact Information.",
-        "Update your mailing address and billing address, then confirm card delivery and statement preferences.",
+        "Update your mailing address and save the change.",
       ],
       Utilities: [
         `Open your ${name} account or customer portal.`,
-        "Update the service address and billing address if they are different.",
-        "Confirm start or end dates, final billing, autopay, and any equipment return details.",
+        "Update the service address.",
+        "Update the billing address if it is different, then confirm billing and autopay details.",
       ],
       "Government / DMV": [
-        `Open the official ${name} update page.`,
-        "Check license, vehicle registration, voter registration, and mailing address requirements.",
-        "Have your ID, vehicle details, and new residential address ready before submitting.",
+        `Open the official ${name} page.`,
+        "Update your license address, vehicle registration address, or mailing address as required.",
+        "Review the confirmation before submitting.",
       ],
       Subscriptions: [
         `Open ${name} account settings.`,
-        "Update your billing address and shipping address.",
-        "Check payment method, membership renewal, and saved delivery defaults.",
+        "Update your shipping address.",
+        "Update your billing address and saved payment details if needed.",
       ],
       "Delivery Apps": [
         `Open ${name} profile or saved addresses.`,
@@ -404,29 +404,29 @@ function App() {
       ],
       "Shopping / Ecommerce": [
         `Open ${name} account settings or address book.`,
-        "Update shipping address, billing address, and default payment address.",
-        "Check open orders, subscriptions, and saved checkout defaults.",
+        "Update your shipping address.",
+        "Update your billing address and saved checkout defaults.",
       ],
       Insurance: [
         `Log in to ${name} or contact your agent.`,
-        "Update mailing address, contact info, and garaging or property address if applicable.",
-        "Review whether the move affects policy documents, premiums, coverage, or renewal notices.",
+        "Update your mailing address and contact address.",
+        "Review whether the move affects policy documents, premiums, or renewal notices.",
       ],
       Healthcare: [
         `Open ${name} member portal or patient profile.`,
-        "Update mailing address and contact info.",
-        "Check benefits, claims, pharmacy, provider records, and paperless communication preferences.",
+        "Update your mailing address and contact address.",
+        "Check benefits, claims, pharmacy, and paperless communication preferences.",
       ],
       "Work / Payroll": [
         `Open ${name} or your HR portal.`,
-        "Update your home address, mailing address, and contact info.",
-        "Confirm tax forms, payroll records, benefits, and retirement account notices use the new address.",
+        "Update your HR or payroll address.",
+        "Confirm tax forms, benefits, and payroll records use the new address.",
       ],
     };
 
     return guidance[cat] || [
       `Open ${name} account settings.`,
-      "Update your mailing address and contact details.",
+      "Update your mailing address.",
       "Confirm billing, shipping, and notification preferences before saving.",
     ];
   };
@@ -434,7 +434,8 @@ function App() {
   const getRequiredInfoChecklist = () => [
     { label: "Full name", value: savedName },
     { label: "New address", value: savedAddress },
-    { label: "Phone or email if needed", value: phone || email },
+    { label: "Email", value: email },
+    { label: "Phone", value: phone },
   ];
 
   const goToWelcome = () => {
@@ -1036,7 +1037,8 @@ function App() {
         <div style={workspaceHeader}>
           <div>
             <div style={eyebrow}>Step 5 of 5</div>
-            <h1 style={workspaceTitle}>{selectedItem.text}</h1>
+            <h1 style={workspaceTitle}>Update your {selectedItem.text} address</h1>
+            <p style={taskSubtitle}>{activeCategory}</p>
           </div>
           <span style={selectedStatus === "completed" ? statusDone : selectedStatus === "in_progress" ? statusProgress : statusOpen}>
             {getStatusLabel(selectedStatus)}
@@ -1058,8 +1060,8 @@ function App() {
           </div>
 
           <div style={guidanceCard}>
-            <div style={eyebrow}>Service-specific guidance</div>
-            <strong style={guidanceTitle}>What to do for {selectedItem.text}</strong>
+            <div style={eyebrow}>Step-by-step instructions</div>
+            <strong style={guidanceTitle}>How to update {selectedItem.text}</strong>
             <div style={guidanceList}>
               {taskGuidance.map((step, index) => (
                 <div key={step} style={guidanceStep}>
@@ -1071,7 +1073,7 @@ function App() {
           </div>
 
           <div style={guidanceCard}>
-            <div style={eyebrow}>Required info checklist</div>
+            <div style={eyebrow}>Required info</div>
             <div style={requiredInfoGrid}>
               {requiredInfo.map(item => (
                 <div key={item.label} style={requiredInfoItem}>
@@ -1080,42 +1082,22 @@ function App() {
                 </div>
               ))}
             </div>
-          </div>
-
-          <div style={linkCard}>
-            <span style={infoLabel}>Update page</span>
-            <a href={selectedItem.link} target="_blank" rel="noreferrer" style={detailLink}>
-              {selectedItem.link}
-            </a>
-          </div>
-
-          <div style={infoSection}>
-            <strong>Saved info</strong>
-            <div style={infoGrid}>
-              <span style={infoLabel}>Name</span>
-              <span style={infoValue}>{savedName}</span>
-              <span style={infoLabel}>Email</span>
-              <span style={infoValue}>{email}</span>
-              <span style={infoLabel}>Phone</span>
-              <span style={infoValue}>{phone}</span>
-              <span style={infoLabel}>Address</span>
-              <span style={infoValue}>{savedAddress}</span>
-            </div>
 
             <div style={quickCopySectionCompact}>
               <button onClick={() => copyText("detail-address", savedAddress)} style={copiedKey === "detail-address" ? copyBtnDone : copyBtn}>
                 {copiedKey === "detail-address" ? "Copied!" : "Copy Full Address"}
               </button>
-              <button onClick={() => copyText("detail-email", email)} style={copiedKey === "detail-email" ? copyBtnDone : copyBtn}>
-                {copiedKey === "detail-email" ? "Copied!" : "Copy Email"}
-              </button>
-              <button onClick={() => copyText("detail-phone", phone)} style={copiedKey === "detail-phone" ? copyBtnDone : copyBtn}>
-                {copiedKey === "detail-phone" ? "Copied!" : "Copy Phone"}
-              </button>
               <button onClick={() => copyText("detail-full", fullProfileText)} style={copiedKey === "detail-full" ? copyBtnDone : copyBtn}>
                 {copiedKey === "detail-full" ? "Copied!" : "Copy Full Profile"}
               </button>
             </div>
+          </div>
+
+          <div style={linkCard}>
+            <span style={infoLabel}>{selectedItem.text} page</span>
+            <a href={selectedItem.link} target="_blank" rel="noreferrer" style={detailLink}>
+              {selectedItem.link}
+            </a>
           </div>
 
           <div style={modalActions}>
@@ -1931,12 +1913,11 @@ const actionCopy = {
   fontSize: 15,
 };
 
-const infoSection = {
-  marginTop: 16,
-  padding: 16,
-  border: "1px solid var(--border)",
-  borderRadius: 12,
-  background: "var(--surface)",
+const taskSubtitle = {
+  margin: "8px 0 0",
+  color: "var(--text)",
+  fontSize: 15,
+  fontWeight: 800,
 };
 
 const detailGrid = {
@@ -2040,23 +2021,10 @@ const modalActions = {
   marginTop: 18,
 };
 
-const infoGrid = {
-  display: "grid",
-  gridTemplateColumns: "90px 1fr",
-  gap: "8px 12px",
-  marginTop: 12,
-};
-
 const infoLabel = {
   color: "var(--text)",
   fontSize: 14,
   fontWeight: 700,
-};
-
-const infoValue = {
-  color: "var(--text-h)",
-  fontSize: 14,
-  wordBreak: "break-word",
 };
 
 const profileCard = {
