@@ -375,6 +375,73 @@ function App() {
     return helpers[cat] || `Updating ${name} helps important account notices and saved address details follow you to the right place.`;
   };
 
+  const getTaskGuidance = (cat, name) => {
+    const guidance = {
+      Banks: [
+        `Log in to ${name}.`,
+        "Go to Profile, Personal Info, or Account Settings.",
+        "Update your mailing address and confirm whether statements, tax forms, and replacement cards use the same address.",
+      ],
+      "Credit Cards": [
+        `Log in to ${name}.`,
+        "Go to Profile, Account Settings, or Contact Information.",
+        "Update your mailing address and billing address, then confirm card delivery and statement preferences.",
+      ],
+      Utilities: [
+        `Open your ${name} account or customer portal.`,
+        "Update the service address and billing address if they are different.",
+        "Confirm start or end dates, final billing, autopay, and any equipment return details.",
+      ],
+      "Government / DMV": [
+        `Open the official ${name} update page.`,
+        "Check license, vehicle registration, voter registration, and mailing address requirements.",
+        "Have your ID, vehicle details, and new residential address ready before submitting.",
+      ],
+      Subscriptions: [
+        `Open ${name} account settings.`,
+        "Update your billing address and shipping address.",
+        "Check payment method, membership renewal, and saved delivery defaults.",
+      ],
+      "Delivery Apps": [
+        `Open ${name} profile or saved addresses.`,
+        "Update your home, delivery, and checkout default addresses.",
+        "Remove the old address if you no longer want it offered at checkout.",
+      ],
+      "Shopping / Ecommerce": [
+        `Open ${name} account settings or address book.`,
+        "Update shipping address, billing address, and default payment address.",
+        "Check open orders, subscriptions, and saved checkout defaults.",
+      ],
+      Insurance: [
+        `Log in to ${name} or contact your agent.`,
+        "Update mailing address, contact info, and garaging or property address if applicable.",
+        "Review whether the move affects policy documents, premiums, coverage, or renewal notices.",
+      ],
+      Healthcare: [
+        `Open ${name} member portal or patient profile.`,
+        "Update mailing address and contact info.",
+        "Check benefits, claims, pharmacy, provider records, and paperless communication preferences.",
+      ],
+      "Work / Payroll": [
+        `Open ${name} or your HR portal.`,
+        "Update your home address, mailing address, and contact info.",
+        "Confirm tax forms, payroll records, benefits, and retirement account notices use the new address.",
+      ],
+    };
+
+    return guidance[cat] || [
+      `Open ${name} account settings.`,
+      "Update your mailing address and contact details.",
+      "Confirm billing, shipping, and notification preferences before saving.",
+    ];
+  };
+
+  const getRequiredInfoChecklist = () => [
+    { label: "Full name", value: savedName || "Not added yet" },
+    { label: "New address", value: savedAddress || "Not added yet" },
+    { label: "Phone or email if needed", value: phone || email || "Not added yet" },
+  ];
+
   const goToWelcome = () => {
     setCurrentView("welcome");
     setActiveCategory(null);
@@ -975,6 +1042,8 @@ function App() {
   if (renderedView === "task") {
     const selectedItem = categories[activeCategory].find(i => i.id === selectedItemId);
     const selectedStatus = getItemStatus(selectedItem);
+    const taskGuidance = getTaskGuidance(activeCategory, selectedItem.text);
+    const requiredInfo = getRequiredInfoChecklist();
 
     return (
       <Centered>
@@ -999,6 +1068,31 @@ function App() {
             <div style={detailStat}>
               <span style={infoLabel}>Estimated time</span>
               <strong style={detailValue}>{getEstimatedTime(activeCategory)}</strong>
+            </div>
+          </div>
+
+          <div style={guidanceCard}>
+            <div style={eyebrow}>Service-specific guidance</div>
+            <strong style={guidanceTitle}>What to do for {selectedItem.text}</strong>
+            <div style={guidanceList}>
+              {taskGuidance.map((step, index) => (
+                <div key={step} style={guidanceStep}>
+                  <span style={guidanceNumber}>{index + 1}</span>
+                  <span>{step}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div style={guidanceCard}>
+            <div style={eyebrow}>Required info checklist</div>
+            <div style={requiredInfoGrid}>
+              {requiredInfo.map(item => (
+                <div key={item.label} style={requiredInfoItem}>
+                  <span style={infoLabel}>{item.label}</span>
+                  <strong style={detailValue}>{item.value}</strong>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -1791,6 +1885,63 @@ const detailValue = {
   display: "block",
   marginTop: 4,
   color: "var(--text-h)",
+};
+
+const guidanceCard = {
+  display: "grid",
+  gap: 12,
+  marginBottom: 12,
+  padding: 16,
+  border: "1px solid var(--border)",
+  borderRadius: 12,
+  background: "var(--surface)",
+  boxShadow: "var(--shadow-subtle)",
+};
+
+const guidanceTitle = {
+  display: "block",
+  lineHeight: "140%",
+};
+
+const guidanceList = {
+  display: "grid",
+  gap: 10,
+};
+
+const guidanceStep = {
+  display: "grid",
+  gridTemplateColumns: "28px 1fr",
+  gap: 10,
+  alignItems: "flex-start",
+  color: "var(--text)",
+  fontSize: 14,
+  lineHeight: "145%",
+};
+
+const guidanceNumber = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: 24,
+  height: 24,
+  borderRadius: 999,
+  background: "var(--accent-bg)",
+  color: "var(--accent-strong)",
+  fontSize: 12,
+  fontWeight: 900,
+};
+
+const requiredInfoGrid = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+  gap: 10,
+};
+
+const requiredInfoItem = {
+  padding: 12,
+  border: "1px solid var(--border)",
+  borderRadius: 12,
+  background: "var(--row-bg)",
 };
 
 const linkCard = {
