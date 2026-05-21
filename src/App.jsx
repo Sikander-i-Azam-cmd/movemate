@@ -437,9 +437,9 @@ function App() {
   };
 
   const getRequiredInfoChecklist = () => [
-    { label: "Full name", value: savedName || "Not added yet" },
-    { label: "New address", value: savedAddress || "Not added yet" },
-    { label: "Phone or email if needed", value: phone || email || "Not added yet" },
+    { label: "Full name", value: savedName },
+    { label: "New address", value: savedAddress },
+    { label: "Phone or email if needed", value: phone || email },
   ];
 
   const goToWelcome = () => {
@@ -532,16 +532,12 @@ function App() {
   };
 
   const selectCategory = (cat) => {
-    setSelectedFlowCategories(selected => (
-      selected.includes(cat)
-        ? selected.filter(item => item !== cat)
-        : [...selected, cat]
-    ));
+    setSelectedFlowCategories([cat]);
     setSelectedItemId(null);
   };
 
   const continueToCategory = () => {
-    const nextCategory = selectedFlowCategories.find(cat => categories[cat]) || activeCategory;
+    const nextCategory = selectedFlowCategories[0] || activeCategory;
     if (!nextCategory || !categories[nextCategory]) return;
     setActiveCategory(nextCategory);
     setSelectedItemId(null);
@@ -917,19 +913,19 @@ function App() {
             <div style={profileGrid}>
               <div style={profileItem}>
                 <span style={infoLabel}>Full name</span>
-                <strong style={profileValue}>{savedName || "Not added yet"}</strong>
+                <strong style={profileValue}>{savedName}</strong>
               </div>
               <div style={profileItem}>
                 <span style={infoLabel}>Email</span>
-                <strong style={profileValue}>{email || "Not added yet"}</strong>
+                <strong style={profileValue}>{email}</strong>
               </div>
               <div style={profileItem}>
                 <span style={infoLabel}>Phone</span>
-                <strong style={profileValue}>{phone || "Not added yet"}</strong>
+                <strong style={profileValue}>{phone}</strong>
               </div>
               <div style={profileItemWide}>
                 <span style={infoLabel}>Full address</span>
-                <strong style={profileValue}>{savedAddress || "Not added yet"}</strong>
+                <strong style={profileValue}>{savedAddress}</strong>
               </div>
             </div>
           )}
@@ -1107,13 +1103,13 @@ function App() {
             <strong>Saved info</strong>
             <div style={infoGrid}>
               <span style={infoLabel}>Name</span>
-              <span style={infoValue}>{savedName || "Not added yet"}</span>
+              <span style={infoValue}>{savedName}</span>
               <span style={infoLabel}>Email</span>
-              <span style={infoValue}>{email || "Not added yet"}</span>
+              <span style={infoValue}>{email}</span>
               <span style={infoLabel}>Phone</span>
-              <span style={infoValue}>{phone || "Not added yet"}</span>
+              <span style={infoValue}>{phone}</span>
               <span style={infoLabel}>Address</span>
-              <span style={infoValue}>{savedAddress || "Not added yet"}</span>
+              <span style={infoValue}>{savedAddress}</span>
             </div>
 
             <div style={quickCopySectionCompact}>
