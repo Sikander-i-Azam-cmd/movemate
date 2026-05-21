@@ -4,7 +4,6 @@ function App() {
   const [activeCategory, setActiveCategory] = useState(null);
   const [selectedItemId, setSelectedItemId] = useState(null);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const [newItem, setNewItem] = useState("");
   const [search, setSearch] = useState("");
   const [copiedKey, setCopiedKey] = useState("");
   const [selectedFlowCategories, setSelectedFlowCategories] = useState([]);
@@ -447,7 +446,6 @@ function App() {
     setActiveCategory(null);
     setSelectedItemId(null);
     setSearch("");
-    setNewItem("");
   };
 
   const closeDetailPanel = () => {
@@ -465,7 +463,6 @@ function App() {
     setActiveCategory(null);
     setSelectedItemId(null);
     setSearch("");
-    setNewItem("");
   };
 
   const openChecklist = () => {
@@ -473,7 +470,6 @@ function App() {
     setActiveCategory(null);
     setSelectedItemId(null);
     setSearch("");
-    setNewItem("");
   };
 
   const startGuidedFlow = () => {
@@ -515,7 +511,6 @@ function App() {
     setActiveCategory(null);
     setSelectedItemId(null);
     setSearch("");
-    setNewItem("");
     setCopiedKey("");
     setIsEditingProfile(false);
     setHasCompletedOnboarding(true);
@@ -527,7 +522,6 @@ function App() {
     setActiveCategory(null);
     setSelectedItemId(null);
     setSearch("");
-    setNewItem("");
     setCurrentView("complete");
   };
 
@@ -542,7 +536,6 @@ function App() {
     setActiveCategory(nextCategory);
     setSelectedItemId(null);
     setSearch("");
-    setNewItem("");
     setCurrentView("category");
   };
 
@@ -602,16 +595,18 @@ function App() {
 
     const finalLink = link || findLink(name);
     const nextId = Math.max(0, ...Object.values(categories).flat().map(item => Number(item.id) || 0)) + 1;
+    const itemName = name.trim();
 
     setCategories({
       ...categories,
       [activeCategory]: [
         ...categories[activeCategory],
-        { id: nextId, text: name, link: finalLink, status: "not_started" },
+        { id: nextId, text: itemName, link: finalLink, status: "not_started" },
       ],
     });
 
-    setNewItem("");
+    setSearch("");
+    setSelectedItemId(nextId);
   };
 
   const getCategoryProgress = (cat) => {
@@ -714,7 +709,6 @@ function App() {
     setActiveCategory(null);
     setSelectedItemId(null);
     setSearch("");
-    setNewItem("");
     setOnboardingStep(onboardingSteps.length - 1);
     setHasCompletedOnboarding(true);
   };
@@ -1156,24 +1150,32 @@ function App() {
     const existing = items.map(i => i.text.toLowerCase());
     const categoryProgress = getCategoryProgress(activeCategory);
     const isCategoryComplete = items.length > 0 && categoryProgress.done === categoryProgress.total;
+    const searchText = search.trim();
+    const filteredItems = items.filter(i => i.text.toLowerCase().includes(searchText.toLowerCase()));
 
     const suggestions = (masterLists[activeCategory] || []).filter(item =>
-      item.name.toLowerCase().includes(newItem.toLowerCase()) &&
+      searchText &&
+      item.name.toLowerCase().includes(searchText.toLowerCase()) &&
       !existing.includes(item.name.toLowerCase())
     );
+    const hasExistingSearchMatch = existing.includes(searchText.toLowerCase());
+    const hasExactSuggestionMatch = (masterLists[activeCategory] || []).some(item =>
+      item.name.toLowerCase() === searchText.toLowerCase()
+    );
+    const canAddCustomItem = Boolean(searchText && !hasExistingSearchMatch && !hasExactSuggestionMatch && suggestions.length === 0);
 
     return (
       <Centered>
         <div style={workspaceHeader}>
           <div>
             <div style={eyebrow}>Step 4 of 5</div>
-            <h1 style={workspaceTitle}>{activeCategory}</h1>
+            <h1 style={workspaceTitle}>Choose your {activeCategory} account</h1>
           </div>
           <span style={progressBadge}>{categoryProgress.done}/{categoryProgress.total} done</span>
         </div>
 
         <p style={progressCopy}>
-          Choose a specific service to open the guided action, or add a new item for this category.
+          Pick one saved service, search common providers, or add a custom account if it is not listed.
         </p>
 
         {isCategoryComplete && (
@@ -1183,12 +1185,17 @@ function App() {
           </div>
         )}
 
-        <input placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} style={input} />
-
         <div style={{ position: "relative" }}>
-          <input placeholder="Add new..." value={newItem} onChange={(e) => setNewItem(e.target.value)} style={input} />
+          <input
+            placeholder={`Search ${activeCategory} accounts...`}
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+            }}
+            style={input}
+          />
 
-          {newItem && suggestions.length > 0 && (
+          {searchText && suggestions.length > 0 && (
             <div style={suggestionBox}>
               {suggestions.map((item, i) => (
                 <div key={i} style={suggestionItem} onClick={() => addItem(item.name, item.link)}>
@@ -1199,19 +1206,22 @@ function App() {
           )}
         </div>
 
-        <button onClick={() => addItem(newItem)} style={primaryBtn}>Add</button>
+        {canAddCustomItem && (
+          <button onClick={() => addItem(searchText)} style={primaryBtn}>
+            Add "{searchText}"
+          </button>
+        )}
 
-        {items
-          .filter(i => i.text.toLowerCase().includes(search.toLowerCase()))
-          .map(item => {
+        <div style={servicePickerGrid}>
+          {filteredItems.map(item => {
             const itemStatus = getItemStatus(item);
             const itemRowStyle = item.id === selectedItemId
-              ? selectedRow
+              ? serviceCardSelected
               : itemStatus === "completed"
-                ? completedRow
+                ? serviceCardCompleted
                 : itemStatus === "in_progress"
-                  ? inProgressRow
-                  : row;
+                  ? serviceCardProgress
+                  : serviceCard;
 
             return (
               <div
@@ -1219,14 +1229,18 @@ function App() {
                 style={itemRowStyle}
                 onClick={() => setSelectedItemId(item.id)}
               >
-                <div>
+                <div style={serviceCardContent}>
                   <span style={itemStatus === "completed" ? checkmarkDone : checkmark}>
                     {itemStatus === "completed" ? "✓" : ""}
                   </span>
-                  <span style={{ marginLeft: 8 }}>{item.text}</span>
+                  <span>
+                    <strong style={serviceCardTitle}>{item.text}</strong>
+                    <span style={serviceCardMeta}>{getStatusLabel(itemStatus)}</span>
+                  </span>
                 </div>
 
-                <div style={{ display: "flex", gap: 20 }}>
+                <div style={serviceCardActions}>
+                  {item.id === selectedItemId && <span style={selectedServiceBadge}>Selected</span>}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -1241,6 +1255,13 @@ function App() {
               </div>
             );
           })}
+        </div>
+
+        {!filteredItems.length && (
+          <div style={emptyServiceState}>
+            {searchText ? "No saved accounts match your search." : "No saved accounts yet."}
+          </div>
+        )}
 
         <button
           onClick={continueToSelectedTask}
@@ -1683,24 +1704,84 @@ const row = {
   transition: "border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease, background-color 0.18s ease",
 };
 
-const selectedRow = {
+const servicePickerGrid = {
+  display: "grid",
+  gap: 12,
+  marginTop: 14,
+};
+
+const serviceCard = {
   ...row,
+  alignItems: "flex-start",
+  minHeight: 76,
+  marginBottom: 0,
+  cursor: "pointer",
+};
+
+const serviceCardSelected = {
+  ...serviceCard,
   borderColor: "var(--accent-border)",
   background: "var(--accent-bg)",
   boxShadow: "var(--shadow-hover)",
 };
 
-const inProgressRow = {
-  ...row,
+const serviceCardProgress = {
+  ...serviceCard,
   borderColor: "var(--accent-border)",
   background: "var(--accent-bg)",
 };
 
-const completedRow = {
-  ...row,
+const serviceCardCompleted = {
+  ...serviceCard,
   borderColor: "var(--success-border)",
   background: "var(--success-bg)",
-  opacity: 0.72,
+};
+
+const serviceCardContent = {
+  display: "flex",
+  alignItems: "flex-start",
+  gap: 10,
+};
+
+const serviceCardTitle = {
+  display: "block",
+  lineHeight: "135%",
+};
+
+const serviceCardMeta = {
+  display: "block",
+  marginTop: 2,
+  color: "var(--text)",
+  fontSize: 13,
+  fontWeight: 700,
+};
+
+const serviceCardActions = {
+  display: "flex",
+  alignItems: "center",
+  gap: 10,
+  flex: "0 0 auto",
+};
+
+const selectedServiceBadge = {
+  padding: "4px 8px",
+  borderRadius: 999,
+  background: "var(--accent)",
+  color: "white",
+  fontSize: 12,
+  fontWeight: 800,
+  whiteSpace: "nowrap",
+};
+
+const emptyServiceState = {
+  marginTop: 12,
+  padding: 16,
+  border: "1px solid var(--border)",
+  borderRadius: 12,
+  background: "var(--secondary-bg)",
+  color: "var(--text)",
+  fontSize: 14,
+  fontWeight: 700,
 };
 
 const checkmark = {
