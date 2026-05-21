@@ -644,17 +644,32 @@ function App() {
   };
 
   const generateSummaryText = () => {
+    const completedItems = selectedSummaryCategories.flatMap(cat => (
+      (categories[cat] || [])
+        .filter(item => getItemStatus(item) === "completed")
+        .map(item => ({ ...item, cat }))
+    ));
+    const remainingItems = selectedSummaryCategories.flatMap(cat => (
+      (categories[cat] || [])
+        .filter(item => getItemStatus(item) !== "completed")
+        .map(item => ({ ...item, cat }))
+    ));
+
     let text = "MoveMate Summary\n\n";
     text += `Overall progress: ${progress}%\n`;
-    text += `${summaryMode === "overall" ? "Categories included" : "Selected categories"}: ${selectedSummaryCategories.join(", ")}\n\n`;
-    selectedSummaryCategories.forEach(cat => {
-      if (!categories[cat]) return;
-      text += `${cat}\n`;
-      categories[cat].forEach(item => {
-        text += `${getItemStatus(item) === "completed" ? "✔" : "•"} ${item.text}\n`;
-      });
-      text += "\n";
-    });
+    text += `Estimated time saved: ${estimatedTimeSaved} minutes\n`;
+    text += `${summaryMode === "overall" ? "Categories included" : "Selected category"}: ${selectedSummaryCategories.join(", ")}\n\n`;
+
+    text += "Updated\n";
+    text += completedItems.length
+      ? completedItems.map(item => `- ${item.cat}: ${item.text}`).join("\n")
+      : "- None yet";
+    text += "\n\nNeeds attention\n";
+    text += remainingItems.length
+      ? remainingItems.map(item => `- ${item.cat}: ${item.text}`).join("\n")
+      : "- Nothing remaining";
+    text += "\n";
+
     return text;
   };
 
@@ -666,11 +681,6 @@ function App() {
     a.download = "movemate-checklist.txt";
     a.click();
     URL.revokeObjectURL(url);
-  };
-
-  const copyChecklist = () => {
-    navigator.clipboard.writeText(generateSummaryText());
-    alert("Checklist copied!");
   };
 
   const goToNextOnboardingStep = () => {
@@ -1275,31 +1285,51 @@ function App() {
     return (
       <Centered>
         <div style={summaryCard}>
-          <div style={eyebrow}>Final summary</div>
-          <h2 style={summaryTitle}>MoveMate Summary</h2>
-          <p><strong>{progress}% complete</strong></p>
-          <p style={progressCopy}>Estimated time saved: {estimatedTimeSaved} minutes</p>
-          <p style={progressCopy}>{summaryMode === "overall" ? "Categories included" : "Selected categories"}: {selectedSummaryCategories.join(", ")}</p>
+          <div style={eyebrow}>Move workflow complete</div>
+          <h2 style={summaryTitle}>Your MoveMate summary is ready.</h2>
+          <p style={progressCopy}>You have a clean record of what was updated and what still needs attention.</p>
+
+          <div style={summaryStatsGrid}>
+            <div style={summaryStat}>
+              <span style={infoLabel}>{summaryMode === "overall" ? "Categories included" : "Selected category"}</span>
+              <strong style={summaryStatValue}>{selectedSummaryCategories.join(", ")}</strong>
+            </div>
+            <div style={summaryStat}>
+              <span style={infoLabel}>Overall progress</span>
+              <strong style={summaryStatValue}>{progress}%</strong>
+            </div>
+            <div style={summaryStat}>
+              <span style={infoLabel}>Items completed</span>
+              <strong style={summaryStatValue}>{completedItems.length}</strong>
+            </div>
+            <div style={summaryStat}>
+              <span style={infoLabel}>Items remaining</span>
+              <strong style={summaryStatValue}>{remainingItems.length}</strong>
+            </div>
+            <div style={summaryStatWide}>
+              <span style={infoLabel}>Estimated time saved</span>
+              <strong style={summaryStatValue}>{estimatedTimeSaved} minutes</strong>
+            </div>
+          </div>
 
           <div style={summaryGroup}>
-            <strong>Completed items</strong>
+            <strong>What you updated</strong>
             {completedItems.length ? completedItems.map(item => (
               <div key={`${item.cat}-${item.id}`}>✓ {item.cat}: {item.text}</div>
             )) : <div>None yet</div>}
           </div>
 
           <div style={summaryGroup}>
-            <strong>Remaining items</strong>
+            <strong>Still needs attention</strong>
             {remainingItems.length ? remainingItems.map(item => (
               <div key={`${item.cat}-${item.id}`}>• {item.cat}: {item.text}</div>
             )) : <div>Nothing remaining</div>}
           </div>
 
           <div style={quickActionsGrid}>
-            <button onClick={downloadChecklist} style={primaryBtn}>Download Summary</button>
-            <button onClick={copyChecklist} style={secondaryBtn}>Copy</button>
+            <button onClick={downloadChecklist} style={primaryBtn}>Download Summary / Checklist</button>
             <button onClick={openChecklist} style={secondaryBtn}>Back to Categories</button>
-            <button onClick={goToWelcome} style={secondaryBtn}>Return to Start</button>
+            <button onClick={startGuidedFlow} style={secondaryBtn}>Start New Guided Flow</button>
           </div>
         </div>
       </Centered>
@@ -1613,6 +1643,33 @@ const summaryTitle = {
 
 const summaryGroup = {
   marginBottom: 12,
+};
+
+const summaryStatsGrid = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+  gap: 10,
+  marginBottom: 18,
+};
+
+const summaryStat = {
+  padding: 14,
+  border: "1px solid var(--border)",
+  borderRadius: 12,
+  background: "var(--row-bg)",
+  boxShadow: "var(--shadow-subtle)",
+};
+
+const summaryStatWide = {
+  ...summaryStat,
+  gridColumn: "1 / -1",
+};
+
+const summaryStatValue = {
+  display: "block",
+  marginTop: 4,
+  color: "var(--text-h)",
+  lineHeight: "135%",
 };
 
 const dashboardHero = {
