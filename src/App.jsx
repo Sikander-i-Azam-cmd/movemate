@@ -36,36 +36,16 @@ function App() {
 
   // ---------------- DATA ----------------
   const defaultCategories = {
-    Banks: [
-      { id: 1, text: "Chase", link: "https://www.chase.com", status: "not_started" },
-    ],
-    "Credit Cards": [
-      { id: 4, text: "Capital One", link: "https://www.capitalone.com", status: "not_started" },
-    ],
-    Insurance: [
-      { id: 6, text: "State Farm", link: "https://www.statefarm.com", status: "not_started" },
-    ],
-    Utilities: [
-      { id: 7, text: "Electric Provider", link: "https://www.google.com/search?q=electric+provider+change+address", status: "not_started" },
-    ],
-    Subscriptions: [
-      { id: 8, text: "Netflix", link: "https://www.netflix.com", status: "not_started" },
-    ],
-    "Delivery Apps": [
-      { id: 10, text: "Uber Eats", link: "https://www.ubereats.com", status: "not_started" },
-    ],
-    "Shopping / Ecommerce": [
-      { id: 11, text: "Amazon", link: "https://www.amazon.com", status: "not_started" },
-    ],
-    "Government / DMV": [
-      { id: 12, text: "DMV", link: "https://www.usa.gov/motor-vehicle-services", status: "not_started" },
-    ],
-    Healthcare: [
-      { id: 13, text: "Health Insurance Provider", link: "https://www.google.com/search?q=health+insurance+provider+change+address", status: "not_started" },
-    ],
-    "Work / Payroll": [
-      { id: 14, text: "Employer Payroll", link: "https://www.google.com/search?q=employer+payroll+change+address", status: "not_started" },
-    ],
+    Banks: [],
+    "Credit Cards": [],
+    Insurance: [],
+    Utilities: [],
+    Subscriptions: [],
+    "Delivery Apps": [],
+    "Shopping / Ecommerce": [],
+    "Government / DMV": [],
+    Healthcare: [],
+    "Work / Payroll": [],
   };
 
   // ---------------- UPDATED MASTER LISTS ----------------
@@ -252,6 +232,18 @@ function App() {
     { key: "Healthcare", label: "Healthcare", description: "Benefits, claims, and provider records" },
     { key: "Work / Payroll", label: "Work / Payroll", description: "HR, benefits, and tax documents" },
   ];
+  const categoryExamples = {
+    Banks: "For example: Chase",
+    "Credit Cards": "For example: Capital One",
+    Insurance: "For example: State Farm",
+    Utilities: "For example: Electric provider",
+    Subscriptions: "For example: Netflix",
+    "Delivery Apps": "For example: Uber Eats",
+    "Shopping / Ecommerce": "For example: Amazon",
+    "Government / DMV": "For example: DMV",
+    Healthcare: "For example: Health insurance provider",
+    "Work / Payroll": "For example: Employer payroll",
+  };
 
   const hasExistingMoveMateData = () =>
     localStorage.getItem("movemate-categories") ||
@@ -1163,8 +1155,9 @@ function App() {
         </div>
 
         <p style={progressCopy}>
-          Pick one saved service, search common providers, or add a custom account if it is not listed.
+          Search common providers or add a custom account. Nothing is added until you choose it.
         </p>
+        <p style={exampleHint}>{categoryExamples[activeCategory]}</p>
 
         {isCategoryComplete && (
           <div style={summaryCard}>
@@ -1247,7 +1240,7 @@ function App() {
 
         {!filteredItems.length && (
           <div style={emptyServiceState}>
-            {searchText ? "No saved accounts match your search." : "No saved accounts yet."}
+            {searchText ? "No added accounts match your search." : "No accounts added yet. Search above to add one."}
           </div>
         )}
 
@@ -2187,6 +2180,13 @@ const progressBadge = {
 const progressCopy = {
   marginBottom: 14,
   fontSize: 15,
+};
+
+const exampleHint = {
+  margin: "-6px 0 18px",
+  color: "var(--text)",
+  fontSize: 13,
+  fontWeight: 700,
 };
 
 const recommendationHeader = {
