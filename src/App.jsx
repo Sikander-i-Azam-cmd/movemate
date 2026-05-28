@@ -8,6 +8,7 @@ function App() {
   const [copiedKey, setCopiedKey] = useState("");
   const [selectedFlowCategories, setSelectedFlowCategories] = useState([]);
   const [summaryMode, setSummaryMode] = useState("selected");
+  const [sessionMessage, setSessionMessage] = useState("");
   const [completionChecks, setCompletionChecks] = useState({
     mailing: false,
     secondaryAddress: false,
@@ -781,7 +782,7 @@ function App() {
     setSearch("");
   };
 
-  const startGuidedFlow = () => {
+  const clearMoveSession = () => {
     const profileKeys = [
       "mm-first",
       "mm-last",
@@ -801,6 +802,7 @@ function App() {
     localStorage.setItem("movemate-categories", JSON.stringify(defaultCategories));
     localStorage.setItem("movemate-onboarding-complete", "true");
     localStorage.setItem("movemate-onboarding-categories", JSON.stringify(onboardingCategoryOptions.map(option => option.key)));
+    localStorage.setItem("movemate-onboarding-step", "0");
     localStorage.removeItem("movemate-current-view");
     localStorage.removeItem("movemate-active-category");
     localStorage.removeItem("movemate-selected-item");
@@ -818,6 +820,7 @@ function App() {
     setMoveDate("");
     setCategories(defaultCategories);
     setSelectedOnboardingCategories(onboardingCategoryOptions.map(option => option.key));
+    setOnboardingStep(0);
     setSelectedFlowCategories([]);
     setSummaryMode("selected");
     setActiveCategory(null);
@@ -832,6 +835,74 @@ function App() {
     });
     setHasCompletedOnboarding(true);
     setCurrentView("profile");
+  };
+
+  const saveProgress = () => {
+    localStorage.setItem("movemate-categories", JSON.stringify(categories));
+    localStorage.setItem("movemate-onboarding-complete", "true");
+    localStorage.setItem("movemate-onboarding-categories", JSON.stringify(selectedOnboardingCategories));
+    localStorage.setItem("movemate-onboarding-step", String(onboardingStep));
+    setHasCompletedOnboarding(true);
+    setSessionMessage("Progress saved.");
+  };
+
+  const resumeProgress = () => {
+    if (!hasExistingMoveMateData()) {
+      setSessionMessage("No saved progress found.");
+      return;
+    }
+
+    const savedCategories = localStorage.getItem("movemate-categories");
+    const savedSelection = localStorage.getItem("movemate-onboarding-categories");
+    const savedStep = Number(localStorage.getItem("movemate-onboarding-step"));
+
+    if (savedCategories) {
+      try {
+        setCategories(mergeCategories(defaultCategories, JSON.parse(savedCategories)));
+      } catch {
+        setCategories(defaultCategories);
+      }
+    }
+
+    if (savedSelection) {
+      try {
+        const parsedSelection = JSON.parse(savedSelection);
+        if (Array.isArray(parsedSelection) && parsedSelection.length) {
+          setSelectedOnboardingCategories(parsedSelection);
+        }
+      } catch {
+        setSelectedOnboardingCategories(onboardingCategoryOptions.map(option => option.key));
+      }
+    }
+
+    setFirstName(localStorage.getItem("mm-first") || "");
+    setLastName(localStorage.getItem("mm-last") || "");
+    setEmail(localStorage.getItem("mm-email") || "");
+    setPhone(localStorage.getItem("mm-phone") || "");
+    setStreet(localStorage.getItem("mm-street") || "");
+    setAddress2(localStorage.getItem("mm-address2") || "");
+    setCity(localStorage.getItem("mm-city") || "");
+    setState(localStorage.getItem("mm-state") || "");
+    setZip(localStorage.getItem("mm-zip") || "");
+    setCountry(localStorage.getItem("mm-country") || "");
+    setMoveDate(localStorage.getItem("mm-move-date") || localStorage.getItem("movemate-move-date") || "");
+    setOnboardingStep(Number.isInteger(savedStep) && savedStep >= 0 && savedStep < onboardingSteps.length ? savedStep : onboardingSteps.length - 1);
+    setHasCompletedOnboarding(true);
+    setCurrentView(savedCategories ? "categories" : "profile");
+    setActiveCategory(null);
+    setSelectedItemId(null);
+    setSelectedFlowCategories([]);
+    setSummaryMode("selected");
+    setSearch("");
+    setCopiedKey("");
+    setSessionMessage("Progress resumed.");
+  };
+
+  const startNewMove = () => {
+    const shouldReset = window.confirm("Start a new move? This will clear current demo/session data.");
+    if (!shouldReset) return;
+    clearMoveSession();
+    setSessionMessage("Started a new move.");
   };
 
   const openOverallSummary = () => {
@@ -1898,7 +1969,19 @@ function App() {
           <div style={quickActionsGrid}>
             <button onClick={downloadChecklist} style={primaryBtn}>Download Summary / Checklist</button>
             <button onClick={openChecklist} style={secondaryBtn}>Back to Categories</button>
-            <button onClick={startGuidedFlow} style={secondaryBtn}>Start New Guided Flow</button>
+          </div>
+
+          <div style={sessionControlsCard}>
+            <div>
+              <div style={eyebrow}>Session controls</div>
+              <strong style={sessionControlsTitle}>Save, resume, or start fresh.</strong>
+            </div>
+            <div style={sessionControlsGrid}>
+              <button onClick={saveProgress} style={sessionControlBtn}>Save Progress</button>
+              <button onClick={resumeProgress} style={sessionControlBtn}>Resume Progress</button>
+              <button onClick={startNewMove} style={sessionDangerBtn}>Start New Move</button>
+            </div>
+            {sessionMessage && <p style={sessionMessageText}>{sessionMessage}</p>}
           </div>
         </div>
       </Centered>
@@ -1931,8 +2014,21 @@ function App() {
         <p style={readinessCopy}>{readiness.message}</p>
       </div>
 
-      <button onClick={startGuidedFlow} style={primaryBtn}>
-        Start Guided Flow
+      <div style={sessionControlsCard}>
+        <div>
+          <div style={eyebrow}>Session controls</div>
+          <strong style={sessionControlsTitle}>Keep your move progress available.</strong>
+        </div>
+        <div style={sessionControlsGrid}>
+          <button onClick={saveProgress} style={sessionControlBtn}>Save Progress</button>
+          <button onClick={resumeProgress} style={sessionControlBtn}>Resume Progress</button>
+          <button onClick={startNewMove} style={sessionDangerBtn}>Start New Move</button>
+        </div>
+        {sessionMessage && <p style={sessionMessageText}>{sessionMessage}</p>}
+      </div>
+
+      <button onClick={startNewMove} style={primaryBtn}>
+        Start New Move
       </button>
     </Centered>
   );
@@ -2678,6 +2774,55 @@ const secondaryBtn = {
   background: "var(--secondary-bg)",
   color: "var(--text-h)",
   borderColor: "var(--border)",
+};
+
+const sessionControlsCard = {
+  display: "grid",
+  gap: 12,
+  margin: "18px 0 0",
+  padding: 16,
+  border: "1px solid var(--border)",
+  borderRadius: 12,
+  background: "var(--surface)",
+  boxShadow: "var(--shadow-subtle)",
+};
+
+const sessionControlsTitle = {
+  display: "block",
+  marginTop: 4,
+  color: "var(--text-h)",
+  lineHeight: "135%",
+};
+
+const sessionControlsGrid = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
+  gap: 10,
+};
+
+const sessionControlBtn = {
+  ...buttonBase,
+  minHeight: 42,
+  marginTop: 0,
+  padding: "10px 12px",
+  borderColor: "var(--border)",
+  background: "var(--secondary-bg)",
+  color: "var(--text-h)",
+  fontSize: 14,
+};
+
+const sessionDangerBtn = {
+  ...sessionControlBtn,
+  borderColor: "rgba(220, 38, 38, 0.18)",
+  background: "rgba(254, 226, 226, 0.72)",
+  color: "#b91c1c",
+};
+
+const sessionMessageText = {
+  margin: 0,
+  color: "var(--accent-strong)",
+  fontSize: 13,
+  fontWeight: 800,
 };
 
 const forgottenCard = {
