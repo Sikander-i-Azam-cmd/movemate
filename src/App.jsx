@@ -569,6 +569,50 @@ function App() {
       .sort((a, b) => b.score - a.score)
       .slice(0, 5);
 
+  const getCategoryReadinessWeight = (cat) => {
+    if (priorityCategories.includes(cat)) return 3;
+    if (recommendedCategories.includes(cat)) return 1.75;
+    if (lowerPriorityCategories.includes(cat)) return 1;
+    return 1.5;
+  };
+
+  const getMoveReadiness = () => {
+    const categoryKeys = Object.keys(categories);
+    const weightedTotal = categoryKeys.reduce((total, cat) => total + getCategoryReadinessWeight(cat), 0);
+    const weightedCompleted = categoryKeys.reduce((total, cat) => {
+      const items = categories[cat] || [];
+      const completedItems = items.filter(item => getItemStatus(item) === "completed").length;
+      const categoryCompletion = items.length ? completedItems / items.length : 0;
+      return total + categoryCompletion * getCategoryReadinessWeight(cat);
+    }, 0);
+    const criticalRemaining = priorityCategories.reduce((total, cat) => {
+      const items = categories[cat];
+      if (!items) return total;
+      if (!items.length) return total + 1;
+      return total + items.filter(item => getItemStatus(item) !== "completed").length;
+    }, 0);
+    const daysUntilMove = getDaysUntilMove();
+    const urgencyPenalty = daysUntilMove !== null && daysUntilMove <= 7
+      ? Math.min(30, criticalRemaining * 4)
+      : daysUntilMove !== null && daysUntilMove <= 30
+        ? Math.min(20, criticalRemaining * 2)
+        : Math.min(12, criticalRemaining);
+    const score = weightedTotal
+      ? Math.max(0, Math.min(100, Math.round((weightedCompleted / weightedTotal) * 100 - urgencyPenalty)))
+      : 0;
+
+    return {
+      score,
+      criticalRemaining,
+      criticalLabel: `${criticalRemaining} critical ${criticalRemaining === 1 ? "task" : "tasks"} left`,
+      message: score >= 90
+        ? "You're almost move-ready."
+        : score >= 60
+          ? "A few important updates remain."
+          : "Start with high-priority accounts.",
+    };
+  };
+
   const getHelperText = (cat, name) => {
     const helpers = {
       Banks: `Updating ${name} helps make sure statements, replacement cards, and account notices reach your new address.`,
@@ -1263,6 +1307,7 @@ function App() {
   // ---------------- CATEGORY SELECTION ----------------
   if (renderedView === "categories") {
     const moveTimeline = getMoveTimeline();
+    const readiness = getMoveReadiness();
 
     return (
       <Centered>
@@ -1275,6 +1320,20 @@ function App() {
         </div>
 
         <p style={progressCopy}>Select a category to review its saved services before choosing the exact update to work on.</p>
+
+        <div style={readinessCard}>
+          <div style={readinessHeader}>
+            <div>
+              <div style={eyebrow}>Move readiness score</div>
+              <strong style={readinessScore}>{readiness.score}%</strong>
+            </div>
+            <span style={readinessBadge}>{readiness.criticalLabel}</span>
+          </div>
+          <div style={readinessTrack}>
+            <div style={{ ...readinessFill, width: `${readiness.score}%` }} />
+          </div>
+          <p style={readinessCopy}>{readiness.message}</p>
+        </div>
 
         <div style={timelineCard}>
           <div style={eyebrow}>Move timeline</div>
@@ -1645,6 +1704,7 @@ function App() {
 
   if (renderedView === "complete") {
     const moveTimeline = getMoveTimeline();
+    const readiness = getMoveReadiness();
     const priorityRecommendations = getPriorityRecommendations();
     const completedItems = selectedSummaryCategories.flatMap(cat => (
       (categories[cat] || [])
@@ -1663,6 +1723,20 @@ function App() {
           <div style={eyebrow}>Move workflow complete</div>
           <h2 style={summaryTitle}>Your MoveMate summary is ready.</h2>
           <p style={progressCopy}>You have a clean record of what was updated and what still needs attention.</p>
+
+          <div style={readinessCard}>
+            <div style={readinessHeader}>
+              <div>
+                <div style={eyebrow}>Move readiness score</div>
+                <strong style={readinessScore}>{readiness.score}%</strong>
+              </div>
+              <span style={readinessBadge}>{readiness.criticalLabel}</span>
+            </div>
+            <div style={readinessTrack}>
+              <div style={{ ...readinessFill, width: `${readiness.score}%` }} />
+            </div>
+            <p style={readinessCopy}>{readiness.message}</p>
+          </div>
 
           <div style={timelineCard}>
             <div style={eyebrow}>Move timeline</div>
@@ -1741,6 +1815,8 @@ function App() {
   }
 
   // ---------------- MAIN ----------------
+  const readiness = getMoveReadiness();
+
   return (
     <Centered>
       <div style={dashboardHero}>
@@ -1748,6 +1824,20 @@ function App() {
           <div style={eyebrow}>Step 1 of 5</div>
           <h1 style={dashboardTitle}>Ready to update your move details?</h1>
         </div>
+      </div>
+
+      <div style={readinessCard}>
+        <div style={readinessHeader}>
+          <div>
+            <div style={eyebrow}>Move readiness score</div>
+            <strong style={readinessScore}>{readiness.score}%</strong>
+          </div>
+          <span style={readinessBadge}>{readiness.criticalLabel}</span>
+        </div>
+        <div style={readinessTrack}>
+          <div style={{ ...readinessFill, width: `${readiness.score}%` }} />
+        </div>
+        <p style={readinessCopy}>{readiness.message}</p>
       </div>
 
       <button onClick={startGuidedFlow} style={primaryBtn}>
@@ -2086,6 +2176,67 @@ const dashboardHero = {
 
 const dashboardTitle = {
   margin: "2px 0 10px",
+};
+
+const readinessCard = {
+  display: "grid",
+  gap: 10,
+  margin: "0 0 18px",
+  padding: 18,
+  border: "1px solid var(--accent-border)",
+  borderRadius: 12,
+  background: "linear-gradient(180deg, var(--action-bg), var(--surface) 72%)",
+  boxShadow: "var(--shadow-subtle)",
+};
+
+const readinessHeader = {
+  display: "flex",
+  alignItems: "flex-start",
+  justifyContent: "space-between",
+  gap: 16,
+};
+
+const readinessScore = {
+  display: "block",
+  marginTop: 4,
+  color: "var(--text-h)",
+  fontSize: 34,
+  lineHeight: "100%",
+};
+
+const readinessBadge = {
+  padding: "6px 10px",
+  border: "1px solid var(--accent-border)",
+  borderRadius: 999,
+  background: "var(--accent-bg)",
+  color: "var(--accent-strong)",
+  fontSize: 12,
+  fontWeight: 900,
+  whiteSpace: "nowrap",
+};
+
+const readinessTrack = {
+  width: "100%",
+  height: 10,
+  overflow: "hidden",
+  border: "1px solid var(--border)",
+  borderRadius: 999,
+  background: "var(--secondary-bg)",
+};
+
+const readinessFill = {
+  height: "100%",
+  borderRadius: 999,
+  background: "var(--accent)",
+  transition: "width 0.28s ease",
+};
+
+const readinessCopy = {
+  margin: 0,
+  color: "var(--text)",
+  fontSize: 14,
+  fontWeight: 800,
+  lineHeight: "145%",
 };
 
 const workspaceHeader = {
