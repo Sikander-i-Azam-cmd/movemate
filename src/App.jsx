@@ -905,6 +905,11 @@ function App() {
     setSessionMessage("Started a new move.");
   };
 
+  const startGuidedFlow = () => {
+    clearMoveSession();
+    setSessionMessage("");
+  };
+
   const openOverallSummary = () => {
     setSummaryMode("overall");
     setActiveCategory(null);
@@ -1989,8 +1994,6 @@ function App() {
   }
 
   // ---------------- MAIN ----------------
-  const readiness = getMoveReadiness();
-
   return (
     <Centered>
       <div style={dashboardHero}>
@@ -2000,35 +2003,29 @@ function App() {
         </div>
       </div>
 
-      <div style={readinessCard}>
-        <div style={readinessHeader}>
-          <div>
-            <div style={eyebrow}>Move readiness score</div>
-            <strong style={readinessScore}>{readiness.score}%</strong>
-          </div>
-          <span style={readinessBadge}>{readiness.criticalLabel}</span>
-        </div>
-        <div style={readinessTrack}>
-          <div style={{ ...readinessFill, width: `${readiness.score}%` }} />
-        </div>
-        <p style={readinessCopy}>{readiness.message}</p>
-      </div>
-
-      <div style={sessionControlsCard}>
+      <div style={howItHelpsCard}>
         <div>
-          <div style={eyebrow}>Session controls</div>
-          <strong style={sessionControlsTitle}>Keep your move progress available.</strong>
+          <div style={eyebrow}>How MoveMate helps</div>
+          <h2 style={howItHelpsTitle}>Make address updates easier to finish.</h2>
         </div>
-        <div style={sessionControlsGrid}>
-          <button onClick={saveProgress} style={sessionControlBtn}>Save Progress</button>
-          <button onClick={resumeProgress} style={sessionControlBtn}>Resume Progress</button>
-          <button onClick={startNewMove} style={sessionDangerBtn}>Start New Move</button>
+        <div style={howItHelpsGrid}>
+          <div style={howItHelpsStep}>
+            <span style={howItHelpsNumber}>1</span>
+            <strong>Enter your move info once</strong>
+          </div>
+          <div style={howItHelpsStep}>
+            <span style={howItHelpsNumber}>2</span>
+            <strong>Choose what accounts you need to update</strong>
+          </div>
+          <div style={howItHelpsStep}>
+            <span style={howItHelpsNumber}>3</span>
+            <strong>Follow guided steps and track progress</strong>
+          </div>
         </div>
-        {sessionMessage && <p style={sessionMessageText}>{sessionMessage}</p>}
       </div>
 
-      <button onClick={startNewMove} style={primaryBtn}>
-        Start New Move
+      <button onClick={startGuidedFlow} style={primaryBtn}>
+        Start Guided Flow
       </button>
     </Centered>
   );
@@ -2363,6 +2360,53 @@ const dashboardHero = {
 
 const dashboardTitle = {
   margin: "2px 0 10px",
+};
+
+const howItHelpsCard = {
+  display: "grid",
+  gap: 14,
+  margin: "0 0 18px",
+  padding: 18,
+  border: "1px solid var(--border)",
+  borderRadius: 12,
+  background: "var(--surface)",
+  boxShadow: "var(--shadow-subtle)",
+};
+
+const howItHelpsTitle = {
+  margin: "4px 0 0",
+  color: "var(--text-h)",
+  fontSize: 22,
+  lineHeight: "125%",
+};
+
+const howItHelpsGrid = {
+  display: "grid",
+  gap: 10,
+};
+
+const howItHelpsStep = {
+  display: "grid",
+  gridTemplateColumns: "30px 1fr",
+  gap: 10,
+  alignItems: "center",
+  padding: 12,
+  border: "1px solid var(--border)",
+  borderRadius: 12,
+  background: "var(--row-bg)",
+};
+
+const howItHelpsNumber = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: 26,
+  height: 26,
+  borderRadius: 999,
+  background: "var(--accent-bg)",
+  color: "var(--accent-strong)",
+  fontSize: 12,
+  fontWeight: 900,
 };
 
 const readinessCard = {
