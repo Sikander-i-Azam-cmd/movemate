@@ -469,19 +469,27 @@ function App() {
   };
 
   const priorityCategories = ["Government / DMV", "Utilities", "Banks", "Insurance", "Work / Payroll"];
+  const recommendedCategories = ["Credit Cards", "Healthcare", "Shopping / Ecommerce", "Delivery Apps"];
+  const lowerPriorityCategories = ["Subscriptions"];
+
+  const getDaysUntilMove = () => {
+    if (!moveDate) return null;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selectedDate = new Date(`${moveDate}T00:00:00`);
+    return Math.ceil((selectedDate - today) / 86400000);
+  };
 
   const getMoveTimeline = () => {
-    if (!moveDate) {
+    const daysUntilMove = getDaysUntilMove();
+
+    if (daysUntilMove === null) {
       return {
         label: "Move date not set",
         message: "Add a move date to see timing guidance.",
       };
     }
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const selectedDate = new Date(`${moveDate}T00:00:00`);
-    const daysUntilMove = Math.ceil((selectedDate - today) / 86400000);
 
     if (daysUntilMove <= 7) {
       return {
@@ -502,6 +510,64 @@ function App() {
       message: "You have time, but start with government and financial accounts",
     };
   };
+
+  const getCategoryPriority = (cat) => {
+    const { total, done } = getCategoryProgress(cat);
+    const isComplete = total > 0 && done === total;
+    const daysUntilMove = getDaysUntilMove();
+    const isSoon = daysUntilMove !== null && daysUntilMove <= 7;
+    const isUpcoming = daysUntilMove !== null && daysUntilMove <= 30;
+
+    if (isComplete) {
+      return {
+        label: "Completed",
+        message: "Already handled",
+        score: 0,
+        style: priorityBadgeDone,
+      };
+    }
+
+    if (priorityCategories.includes(cat)) {
+      return {
+        label: "High Priority",
+        message: isSoon ? "Handle before anything else" : isUpcoming ? "Update early" : "Important move record",
+        score: isSoon ? 100 : isUpcoming ? 90 : 80,
+        style: priorityBadgeHigh,
+      };
+    }
+
+    if (recommendedCategories.includes(cat)) {
+      return {
+        label: "Recommended Next",
+        message: isSoon ? "Do after essentials" : "Useful to update soon",
+        score: isSoon ? 70 : 60,
+        style: priorityBadgeRecommended,
+      };
+    }
+
+    if (lowerPriorityCategories.includes(cat)) {
+      return {
+        label: "Can Wait",
+        message: "Update after essential accounts",
+        score: isSoon ? 30 : 20,
+        style: priorityBadgeLow,
+      };
+    }
+
+    return {
+      label: "Recommended Next",
+      message: "Review when essentials are done",
+      score: 50,
+      style: priorityBadgeRecommended,
+    };
+  };
+
+  const getPriorityRecommendations = () =>
+    Object.keys(categories)
+      .map(cat => ({ cat, ...getCategoryPriority(cat) }))
+      .filter(item => item.label !== "Completed")
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 5);
 
   const getHelperText = (cat, name) => {
     const helpers = {
@@ -1232,13 +1298,20 @@ function App() {
 
           {Object.keys(categories).map(cat => {
             const { total, done } = getCategoryProgress(cat);
+            const priority = getCategoryPriority(cat);
             return (
               <button
                 key={cat}
                 style={selectedFlowCategories.includes(cat) ? categoryBtnSelected : categoryBtn}
                 onClick={() => selectCategory(cat)}
               >
-                {cat} ({done}/{total})
+                <span style={categoryBtnContent}>
+                  <span>
+                    <strong style={categoryBtnTitle}>{cat} ({done}/{total})</strong>
+                    <span style={categoryBtnMeta}>{priority.message}</span>
+                  </span>
+                  <span style={priority.style}>{priority.label}</span>
+                </span>
               </button>
             );
           })}
@@ -1272,6 +1345,24 @@ function App() {
       { key: "mailing", label: "I updated my mailing address" },
       { key: "secondaryAddress", label: "I updated my billing/shipping address if needed" },
       { key: "saved", label: "I confirmed changes were saved" },
+    ];
+    const launchFocus = {
+      Banks: "Mailing address, statement address, and card delivery details",
+      "Credit Cards": "Mailing address, billing address, statements, and replacement card delivery",
+      Utilities: "Service address, billing address, autopay, and effective date",
+      "Government / DMV": "License, vehicle, voter, tax, or official mailing records",
+      Subscriptions: "Mailing, billing, saved payment, and subscription delivery details",
+      "Delivery Apps": "Home address, delivery defaults, checkout address, and payment profile",
+      "Shopping / Ecommerce": "Default shipping address, billing address, and saved checkout details",
+      Insurance: "Mailing address, contact address, policy documents, and renewal notices",
+      Healthcare: "Mailing address, contact address, benefits, claims, and pharmacy records",
+      "Work / Payroll": "HR profile, payroll address, tax forms, benefits, and retirement records",
+    };
+    const launchPrepItems = [
+      { label: "Information ready", value: requiredInfo.map(item => item.label).join(", ") },
+      { label: "What to update", value: launchFocus[activeCategory] || "Mailing, billing, shipping, and notification details" },
+      { label: "Estimated time", value: getEstimatedTime(activeCategory) },
+      { label: "Category guidance", value: taskGuidance[0] },
     ];
 
     return (
@@ -1335,6 +1426,43 @@ function App() {
             </div>
           </div>
 
+          <div style={preLaunchCard}>
+            <div style={eyebrow}>Before you open {selectedItem.text}</div>
+            <strong style={preLaunchTitle}>Prepare your update in MoveMate first.</strong>
+            <p style={preLaunchCopy}>
+              Copy your details, then open the company page and use the checklist below to confirm the update was saved.
+            </p>
+
+            <div style={launchPrepGrid}>
+              {launchPrepItems.map(item => (
+                <div key={item.label} style={launchPrepItem}>
+                  <span style={infoLabel}>{item.label}</span>
+                  <strong style={detailValue}>{item.value}</strong>
+                </div>
+              ))}
+            </div>
+
+            <div style={launchCopyActions}>
+              <button onClick={() => copyText("launch-address", savedAddress)} style={copiedKey === "launch-address" ? copyBtnDone : copyBtn}>
+                {copiedKey === "launch-address" ? "Copied!" : "Copy Full Address"}
+              </button>
+              <button onClick={() => copyText("launch-full", fullProfileText)} style={copiedKey === "launch-full" ? copyBtnDone : copyBtn}>
+                {copiedKey === "launch-full" ? "Copied!" : "Copy Full Profile"}
+              </button>
+            </div>
+
+            <div style={linkCard}>
+              <span style={infoLabel}>{selectedItem.text} page</span>
+              <a href={selectedItem.link} target="_blank" rel="noreferrer" style={detailLink}>
+                {selectedItem.link}
+              </a>
+            </div>
+
+            <button onClick={() => openUpdatePage(selectedItem.link)} style={launchPrimaryBtn}>
+              Open {selectedItem.text} Page
+            </button>
+          </div>
+
           <div style={guidanceCard}>
             <div style={eyebrow}>Completion confidence</div>
             <strong style={guidanceTitle}>Confirm before marking this done</strong>
@@ -1356,17 +1484,7 @@ function App() {
             )}
           </div>
 
-          <div style={linkCard}>
-            <span style={infoLabel}>{selectedItem.text} page</span>
-            <a href={selectedItem.link} target="_blank" rel="noreferrer" style={detailLink}>
-              {selectedItem.link}
-            </a>
-          </div>
-
           <div style={modalActions}>
-            <button onClick={() => openUpdatePage(selectedItem.link)} style={primaryBtn}>
-              Open {selectedItem.text} Page
-            </button>
             <button
               onClick={markSelectedTaskComplete}
               style={selectedStatus === "completed" ? secondaryBtn : canCompleteTask ? primaryBtn : primaryBtnDisabled}
@@ -1527,6 +1645,7 @@ function App() {
 
   if (renderedView === "complete") {
     const moveTimeline = getMoveTimeline();
+    const priorityRecommendations = getPriorityRecommendations();
     const completedItems = selectedSummaryCategories.flatMap(cat => (
       (categories[cat] || [])
         .filter(item => getItemStatus(item) === "completed")
@@ -1553,6 +1672,24 @@ function App() {
               {priorityCategories.map(cat => (
                 <span key={cat} style={timelinePriorityItem}>{cat}</span>
               ))}
+            </div>
+          </div>
+
+          <div style={prioritySummaryCard}>
+            <div style={eyebrow}>Smart priority engine</div>
+            <strong style={timelineTitle}>Recommended order</strong>
+            <div style={prioritySummaryList}>
+              {priorityRecommendations.length ? priorityRecommendations.map(item => (
+                <div key={item.cat} style={prioritySummaryRow}>
+                  <span>
+                    <strong style={prioritySummaryName}>{item.cat}</strong>
+                    <span style={categoryBtnMeta}>{item.message}</span>
+                  </span>
+                  <span style={item.style}>{item.label}</span>
+                </div>
+              )) : (
+                <div style={emptyServiceState}>Everything selected is marked complete.</div>
+              )}
             </div>
           </div>
 
@@ -2020,6 +2157,39 @@ const timelinePriorityItem = {
   fontWeight: 800,
 };
 
+const prioritySummaryCard = {
+  display: "grid",
+  gap: 12,
+  margin: "0 0 18px",
+  padding: 16,
+  border: "1px solid var(--border)",
+  borderRadius: 12,
+  background: "var(--surface)",
+  boxShadow: "var(--shadow-subtle)",
+};
+
+const prioritySummaryList = {
+  display: "grid",
+  gap: 10,
+};
+
+const prioritySummaryRow = {
+  display: "flex",
+  alignItems: "flex-start",
+  justifyContent: "space-between",
+  gap: 12,
+  padding: 12,
+  border: "1px solid var(--border)",
+  borderRadius: 12,
+  background: "var(--row-bg)",
+};
+
+const prioritySummaryName = {
+  display: "block",
+  color: "var(--text-h)",
+  lineHeight: "135%",
+};
+
 const input = {
   width: "100%",
   padding: "14px 16px",
@@ -2178,6 +2348,72 @@ const categoryBtnSelected = {
   borderColor: "var(--accent-border)",
   background: "var(--accent-bg)",
   color: "var(--accent-strong)",
+};
+
+const categoryBtnContent = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 12,
+  width: "100%",
+  textAlign: "left",
+};
+
+const categoryBtnTitle = {
+  display: "block",
+  lineHeight: "135%",
+};
+
+const categoryBtnMeta = {
+  display: "block",
+  marginTop: 2,
+  color: "var(--text)",
+  fontSize: 12,
+  fontWeight: 700,
+  lineHeight: "135%",
+};
+
+const priorityBadgeBase = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  flex: "0 0 auto",
+  maxWidth: 150,
+  padding: "5px 8px",
+  border: "1px solid var(--border)",
+  borderRadius: 999,
+  fontSize: 11,
+  fontWeight: 900,
+  lineHeight: "120%",
+  textAlign: "center",
+  whiteSpace: "normal",
+};
+
+const priorityBadgeHigh = {
+  ...priorityBadgeBase,
+  borderColor: "rgba(220, 38, 38, 0.22)",
+  background: "rgba(254, 226, 226, 0.72)",
+  color: "#b91c1c",
+};
+
+const priorityBadgeRecommended = {
+  ...priorityBadgeBase,
+  borderColor: "var(--accent-border)",
+  background: "var(--accent-bg)",
+  color: "var(--accent-strong)",
+};
+
+const priorityBadgeLow = {
+  ...priorityBadgeBase,
+  background: "var(--secondary-bg)",
+  color: "var(--text)",
+};
+
+const priorityBadgeDone = {
+  ...priorityBadgeBase,
+  borderColor: "var(--success-border)",
+  background: "var(--success-bg)",
+  color: "#15803d",
 };
 
 const primaryBtn = {
@@ -2394,6 +2630,57 @@ const requiredInfoItem = {
   border: "1px solid var(--border)",
   borderRadius: 12,
   background: "var(--row-bg)",
+};
+
+const preLaunchCard = {
+  display: "grid",
+  gap: 12,
+  marginBottom: 12,
+  padding: 18,
+  border: "1px solid var(--accent-border)",
+  borderRadius: 12,
+  background: "linear-gradient(180deg, var(--action-bg), var(--surface) 72%)",
+  boxShadow: "var(--shadow-hover)",
+};
+
+const preLaunchTitle = {
+  display: "block",
+  color: "var(--text-h)",
+  fontSize: 18,
+  lineHeight: "135%",
+};
+
+const preLaunchCopy = {
+  margin: 0,
+  color: "var(--text)",
+  fontSize: 14,
+  fontWeight: 700,
+  lineHeight: "145%",
+};
+
+const launchPrepGrid = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+  gap: 10,
+};
+
+const launchPrepItem = {
+  padding: 12,
+  border: "1px solid var(--border)",
+  borderRadius: 12,
+  background: "var(--surface)",
+  boxShadow: "var(--shadow-subtle)",
+};
+
+const launchCopyActions = {
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr",
+  gap: 10,
+};
+
+const launchPrimaryBtn = {
+  ...primaryBtn,
+  marginTop: 0,
 };
 
 const linkCard = {
