@@ -367,6 +367,22 @@ function App() {
     Healthcare: "For example: Health insurance provider",
     "Work / Payroll": "For example: Employer payroll",
   };
+  const forgottenAccountSuggestions = [
+    { name: "USPS Change of Address", cat: "Government / DMV", link: "https://moversguide.usps.com", reason: "Mail forwarding is easy to miss but catches important paper mail." },
+    { name: "DMV / Driver License", cat: "Government / DMV", link: "https://www.usa.gov/motor-vehicle-services", reason: "State ID and driver license records often need a separate update.", aliases: ["DMV", "Driver License"] },
+    { name: "Vehicle Registration", cat: "Government / DMV", link: "https://www.usa.gov/motor-vehicle-services", reason: "Registration notices may not follow your license address automatically." },
+    { name: "Employer Payroll / HR", cat: "Work / Payroll", link: "https://www.google.com/search?q=employer+payroll+change+address", reason: "Payroll and HR addresses affect tax forms and benefits mail.", aliases: ["Employer Payroll", "HR"] },
+    { name: "Health Insurance", cat: "Healthcare", link: "https://www.google.com/search?q=health+insurance+provider+change+address", reason: "Benefits, claims, and member mail often rely on this address.", aliases: ["Health Insurance Provider"] },
+    { name: "Car Insurance", cat: "Insurance", link: "https://www.google.com/search?q=car+insurance+change+address", reason: "Auto policy rates and documents may depend on your garaging address." },
+    { name: "Renters/Home Insurance", cat: "Insurance", link: "https://www.google.com/search?q=renters+home+insurance+change+address", reason: "Property coverage and renewal notices should match the new home." },
+    { name: "Bank Mailing Address", cat: "Banks", link: "https://www.google.com/search?q=bank+mailing+address+change", reason: "Statements, notices, checks, and replacement cards can still go to old mail." },
+    { name: "Credit Card Billing Address", cat: "Credit Cards", link: "https://www.google.com/search?q=credit+card+billing+address+change", reason: "Billing addresses can affect verification and online checkout." },
+    { name: "Amazon Shipping Address", cat: "Shopping / Ecommerce", link: "https://www.amazon.com/a/addresses", reason: "Saved shipping defaults can send packages to the old place." },
+    { name: "Utilities", cat: "Utilities", link: "https://www.google.com/search?q=utilities+move+service+change+address", reason: "Service, billing, and final bill addresses may each need review." },
+    { name: "Cell Phone Provider", cat: "Utilities", link: "https://www.google.com/search?q=cell+phone+provider+change+billing+address", reason: "Wireless billing addresses are commonly separate from home internet." },
+    { name: "Gym Membership", cat: "Subscriptions", link: "https://www.google.com/search?q=gym+membership+change+address", reason: "Membership accounts can keep billing and notices tied to the old address." },
+    { name: "Food Delivery Apps", cat: "Delivery Apps", link: "https://www.google.com/search?q=food+delivery+app+change+address", reason: "Delivery defaults can quietly keep pointing at the old home." },
+  ];
 
   const hasExistingMoveMateData = () =>
     localStorage.getItem("movemate-categories") ||
@@ -917,12 +933,61 @@ function App() {
     setSelectedItemId(nextId);
   };
 
+  const addSuggestedItem = (cat, name, link = "") => {
+    if (!cat || !name.trim()) return;
+
+    const currentItems = categories[cat] || [];
+    const itemName = name.trim();
+    const alreadyAdded = currentItems.some(item => item.text.toLowerCase() === itemName.toLowerCase());
+    if (alreadyAdded) return;
+
+    const finalLink = link || findLink(itemName);
+    const nextId = Math.max(0, ...Object.values(categories).flat().map(item => Number(item.id) || 0)) + 1;
+
+    setCategories({
+      ...categories,
+      [cat]: [
+        ...currentItems,
+        { id: nextId, text: itemName, link: finalLink, status: "not_started" },
+      ],
+    });
+
+    if (cat === activeCategory) {
+      setSelectedItemId(nextId);
+    }
+  };
+
   const getCategoryProgress = (cat) => {
     const items = categories[cat];
     return {
       total: items.length,
       done: items.filter(i => getItemStatus(i) === "completed").length,
     };
+  };
+
+  const getForgottenSuggestions = (cat) => {
+    const existingByCategory = Object.fromEntries(
+      Object.entries(categories).map(([categoryName, items]) => [
+        categoryName,
+        items.map(item => item.text.toLowerCase()),
+      ])
+    );
+    const isMissing = (suggestion) => {
+      const suggestionNames = [suggestion.name, ...(suggestion.aliases || [])].map(name => name.toLowerCase());
+      return !(existingByCategory[suggestion.cat] || []).some(itemName =>
+        suggestionNames.some(suggestionName => itemName === suggestionName || itemName.includes(suggestionName) || suggestionName.includes(itemName))
+      );
+    };
+    const activeCategorySuggestions = forgottenAccountSuggestions.filter(suggestion =>
+      suggestion.cat === cat && isMissing(suggestion)
+    );
+    const priorityCatchUps = forgottenAccountSuggestions.filter(suggestion => {
+      if (suggestion.cat === cat || !priorityCategories.includes(suggestion.cat) || !isMissing(suggestion)) return false;
+      const categoryProgress = categories[suggestion.cat] ? getCategoryProgress(suggestion.cat) : { total: 0, done: 0 };
+      return categoryProgress.total === 0 || categoryProgress.done < categoryProgress.total;
+    });
+
+    return [...activeCategorySuggestions, ...priorityCatchUps].slice(0, 5);
   };
 
   const progress = (() => {
@@ -1571,6 +1636,7 @@ function App() {
     const isCategoryComplete = items.length > 0 && categoryProgress.done === categoryProgress.total;
     const searchText = search.trim();
     const filteredItems = items.filter(i => i.text.toLowerCase().includes(searchText.toLowerCase()));
+    const forgottenSuggestions = getForgottenSuggestions(activeCategory);
 
     const suggestions = (masterLists[activeCategory] || []).filter(item =>
       searchText &&
@@ -1602,6 +1668,31 @@ function App() {
           <div style={summaryCard}>
             <div style={eyebrow}>Category complete</div>
             <p style={progressCopy}>Every saved item in {activeCategory} is marked complete. You can choose another category or add another service.</p>
+          </div>
+        )}
+
+        {forgottenSuggestions.length > 0 && (
+          <div style={forgottenCard}>
+            <div>
+              <div style={eyebrow}>You may have forgotten</div>
+              <strong style={forgottenTitle}>People often forget these during a move.</strong>
+            </div>
+            <div style={forgottenList}>
+              {forgottenSuggestions.map(suggestion => (
+                <div key={`${suggestion.cat}-${suggestion.name}`} style={forgottenSuggestion}>
+                  <span style={forgottenSuggestionText}>
+                    <strong style={serviceCardTitle}>{suggestion.name}</strong>
+                    <span style={serviceCardMeta}>{suggestion.cat} - {suggestion.reason}</span>
+                  </span>
+                  <button
+                    onClick={() => addSuggestedItem(suggestion.cat, suggestion.name, suggestion.link)}
+                    style={forgottenAddBtn}
+                  >
+                    Add to checklist
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -2587,6 +2678,60 @@ const secondaryBtn = {
   background: "var(--secondary-bg)",
   color: "var(--text-h)",
   borderColor: "var(--border)",
+};
+
+const forgottenCard = {
+  display: "grid",
+  gap: 12,
+  margin: "0 0 18px",
+  padding: 18,
+  border: "1px solid var(--accent-border)",
+  borderRadius: 12,
+  background: "linear-gradient(180deg, var(--action-bg), var(--surface) 72%)",
+  boxShadow: "var(--shadow-subtle)",
+};
+
+const forgottenTitle = {
+  display: "block",
+  marginTop: 4,
+  color: "var(--text-h)",
+  lineHeight: "135%",
+};
+
+const forgottenList = {
+  display: "grid",
+  gap: 10,
+};
+
+const forgottenSuggestion = {
+  display: "flex",
+  flexWrap: "wrap",
+  alignItems: "flex-start",
+  justifyContent: "space-between",
+  gap: 12,
+  padding: 12,
+  border: "1px solid var(--border)",
+  borderRadius: 12,
+  background: "var(--surface)",
+  boxShadow: "var(--shadow-subtle)",
+};
+
+const forgottenSuggestionText = {
+  display: "block",
+  minWidth: 0,
+};
+
+const forgottenAddBtn = {
+  ...buttonBase,
+  width: "auto",
+  minWidth: 132,
+  minHeight: 38,
+  padding: "9px 11px",
+  borderColor: "var(--accent-border)",
+  background: "var(--accent-bg)",
+  color: "var(--accent-strong)",
+  fontSize: 13,
+  whiteSpace: "nowrap",
 };
 
 const dangerBtn = {
