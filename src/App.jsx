@@ -26,6 +26,7 @@ function App() {
   const [state, setState] = useState(() => localStorage.getItem("mm-state") || "");
   const [zip, setZip] = useState(() => localStorage.getItem("mm-zip") || "");
   const [country, setCountry] = useState(() => localStorage.getItem("mm-country") || "");
+  const [moveDate, setMoveDate] = useState(() => localStorage.getItem("mm-move-date") || localStorage.getItem("movemate-move-date") || "");
 
   useEffect(() => localStorage.setItem("mm-first", firstName), [firstName]);
   useEffect(() => localStorage.setItem("mm-last", lastName), [lastName]);
@@ -38,6 +39,7 @@ function App() {
   useEffect(() => localStorage.setItem("mm-state", state), [state]);
   useEffect(() => localStorage.setItem("mm-zip", zip), [zip]);
   useEffect(() => localStorage.setItem("mm-country", country), [country]);
+  useEffect(() => localStorage.setItem("mm-move-date", moveDate), [moveDate]);
 
   // ---------------- DATA ----------------
   const defaultCategories = {
@@ -466,6 +468,41 @@ function App() {
     return higherImpactCategories.includes(cat) ? 6 : 3;
   };
 
+  const priorityCategories = ["Government / DMV", "Utilities", "Banks", "Insurance", "Work / Payroll"];
+
+  const getMoveTimeline = () => {
+    if (!moveDate) {
+      return {
+        label: "Move date not set",
+        message: "Add a move date to see timing guidance.",
+      };
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selectedDate = new Date(`${moveDate}T00:00:00`);
+    const daysUntilMove = Math.ceil((selectedDate - today) / 86400000);
+
+    if (daysUntilMove <= 7) {
+      return {
+        label: daysUntilMove < 0 ? "Move date passed" : `${daysUntilMove} days until move`,
+        message: "High priority: update essentials first",
+      };
+    }
+
+    if (daysUntilMove <= 30) {
+      return {
+        label: `${daysUntilMove} days until move`,
+        message: "Good time to start updating key accounts",
+      };
+    }
+
+    return {
+      label: `${daysUntilMove} days until move`,
+      message: "You have time, but start with government and financial accounts",
+    };
+  };
+
   const getHelperText = (cat, name) => {
     const helpers = {
       Banks: `Updating ${name} helps make sure statements, replacement cards, and account notices reach your new address.`,
@@ -630,9 +667,11 @@ function App() {
       "mm-state",
       "mm-zip",
       "mm-country",
+      "mm-move-date",
     ];
 
     profileKeys.forEach(key => localStorage.removeItem(key));
+    localStorage.removeItem("movemate-move-date");
     localStorage.setItem("movemate-categories", JSON.stringify(defaultCategories));
     localStorage.setItem("movemate-onboarding-complete", "true");
     localStorage.setItem("movemate-onboarding-categories", JSON.stringify(onboardingCategoryOptions.map(option => option.key)));
@@ -650,6 +689,7 @@ function App() {
     setState("");
     setZip("");
     setCountry("");
+    setMoveDate("");
     setCategories(defaultCategories);
     setSelectedOnboardingCategories(onboardingCategoryOptions.map(option => option.key));
     setSelectedFlowCategories([]);
@@ -788,12 +828,12 @@ function App() {
 
   const savedName = `${firstName} ${lastName}`.trim();
   const savedAddress = [street, address2, city, state, zip, country].filter(Boolean).join(", ");
-  const moveDate = localStorage.getItem("mm-move-date") || localStorage.getItem("movemate-move-date") || "";
   const fullProfileText = [
     savedName && `Name: ${savedName}`,
     email && `Email: ${email}`,
     phone && `Phone: ${phone}`,
     savedAddress && `Address: ${savedAddress}`,
+    moveDate && `Move date: ${moveDate}`,
   ].filter(Boolean).join("\n");
 
   const copyText = (key, text) => {
@@ -1051,6 +1091,8 @@ function App() {
 
   // ---------------- PROFILE ----------------
   if (renderedView === "profile") {
+    const moveTimeline = getMoveTimeline();
+
     return (
       <Centered>
         <div style={workspaceHeader}>
@@ -1086,9 +1128,17 @@ function App() {
                 <span style={infoLabel}>Phone</span>
                 <strong style={profileValue}>{phone}</strong>
               </div>
+              <div style={profileItem}>
+                <span style={infoLabel}>Move date</span>
+                <strong style={profileValue}>{moveDate || "Not set"}</strong>
+              </div>
               <div style={profileItemWide}>
                 <span style={infoLabel}>Full address</span>
                 <strong style={profileValue}>{savedAddress}</strong>
+              </div>
+              <div style={profileItemWide}>
+                <span style={infoLabel}>Move timeline</span>
+                <strong style={profileValue}>{moveTimeline.message}</strong>
               </div>
             </div>
           )}
@@ -1117,6 +1167,7 @@ function App() {
 
               <input placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} style={input} />
               <input placeholder="Phone" value={phone} onChange={(e) => setPhone(e.target.value)} style={input} />
+              <input aria-label="Move Date" type="date" value={moveDate} onChange={(e) => setMoveDate(e.target.value)} style={input} />
 
               <h3>New Address</h3>
 
@@ -1145,6 +1196,8 @@ function App() {
 
   // ---------------- CATEGORY SELECTION ----------------
   if (renderedView === "categories") {
+    const moveTimeline = getMoveTimeline();
+
     return (
       <Centered>
         <div style={workspaceHeader}>
@@ -1156,6 +1209,17 @@ function App() {
         </div>
 
         <p style={progressCopy}>Select a category to review its saved services before choosing the exact update to work on.</p>
+
+        <div style={timelineCard}>
+          <div style={eyebrow}>Move timeline</div>
+          <strong style={timelineTitle}>{moveTimeline.label}</strong>
+          <p style={timelineCopy}>{moveTimeline.message}</p>
+          <div style={timelinePriorityList}>
+            {priorityCategories.map(cat => (
+              <span key={cat} style={timelinePriorityItem}>{cat}</span>
+            ))}
+          </div>
+        </div>
 
         <div style={checklistOverviewCard}>
           <div style={recommendationHeader}>
@@ -1462,6 +1526,7 @@ function App() {
   }
 
   if (renderedView === "complete") {
+    const moveTimeline = getMoveTimeline();
     const completedItems = selectedSummaryCategories.flatMap(cat => (
       (categories[cat] || [])
         .filter(item => getItemStatus(item) === "completed")
@@ -1479,6 +1544,17 @@ function App() {
           <div style={eyebrow}>Move workflow complete</div>
           <h2 style={summaryTitle}>Your MoveMate summary is ready.</h2>
           <p style={progressCopy}>You have a clean record of what was updated and what still needs attention.</p>
+
+          <div style={timelineCard}>
+            <div style={eyebrow}>Move timeline</div>
+            <strong style={timelineTitle}>{moveTimeline.label}</strong>
+            <p style={timelineCopy}>{moveTimeline.message}</p>
+            <div style={timelinePriorityList}>
+              {priorityCategories.map(cat => (
+                <span key={cat} style={timelinePriorityItem}>{cat}</span>
+              ))}
+            </div>
+          </div>
 
           <div style={summaryStatsGrid}>
             <div style={summaryStat}>
@@ -1900,6 +1976,48 @@ const checklistOverviewCard = {
   borderRadius: 12,
   background: "var(--surface)",
   boxShadow: "var(--shadow-hover)",
+};
+
+const timelineCard = {
+  display: "grid",
+  gap: 8,
+  margin: "0 0 18px",
+  padding: 16,
+  border: "1px solid var(--accent-border)",
+  borderRadius: 12,
+  background: "var(--action-bg)",
+  boxShadow: "var(--shadow-subtle)",
+};
+
+const timelineTitle = {
+  display: "block",
+  color: "var(--text-h)",
+  lineHeight: "135%",
+};
+
+const timelineCopy = {
+  margin: 0,
+  color: "var(--text)",
+  fontSize: 14,
+  fontWeight: 700,
+  lineHeight: "145%",
+};
+
+const timelinePriorityList = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: 8,
+  marginTop: 2,
+};
+
+const timelinePriorityItem = {
+  padding: "5px 8px",
+  border: "1px solid var(--border)",
+  borderRadius: 999,
+  background: "var(--surface)",
+  color: "var(--text-h)",
+  fontSize: 12,
+  fontWeight: 800,
 };
 
 const input = {
