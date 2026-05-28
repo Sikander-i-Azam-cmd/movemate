@@ -8,6 +8,11 @@ function App() {
   const [copiedKey, setCopiedKey] = useState("");
   const [selectedFlowCategories, setSelectedFlowCategories] = useState([]);
   const [summaryMode, setSummaryMode] = useState("selected");
+  const [completionChecks, setCompletionChecks] = useState({
+    mailing: false,
+    secondaryAddress: false,
+    saved: false,
+  });
 
   // ---------------- USER INFO ----------------
   const [firstName, setFirstName] = useState(() => localStorage.getItem("mm-first") || "");
@@ -482,53 +487,73 @@ function App() {
     const guidance = {
       Banks: [
         `Log in to ${name}.`,
-        "Go to Profile, Personal Info, or Account Settings.",
-        "Update your mailing address and save the change.",
+        "Go to Profile, Personal Info, Contact Info, or Account Settings.",
+        "Update your mailing address.",
+        "Check billing, statement, and card delivery preferences if shown.",
+        "Save the change and look for a confirmation screen or message.",
       ],
       "Credit Cards": [
         `Log in to ${name}.`,
-        "Go to Profile, Account Settings, or Contact Information.",
-        "Update your mailing address and save the change.",
+        "Go to Profile, Account Settings, Billing Address, or Contact Information.",
+        "Update your mailing address.",
+        "Review billing address, statement delivery, and replacement card settings.",
+        "Save the change and confirm it appears on the account.",
       ],
       Utilities: [
         `Open your ${name} account or customer portal.`,
-        "Update the service address.",
-        "Update the billing address if it is different, then confirm billing and autopay details.",
+        "Find service address, billing address, or move service settings.",
+        "Update the service address if the utility is moving with you.",
+        "Update the billing address and review autopay details.",
+        "Save changes and confirm the effective date or next bill address.",
       ],
       "Government / DMV": [
         `Open the official ${name} page.`,
-        "Update your license address, vehicle registration address, or mailing address as required.",
-        "Review the confirmation before submitting.",
+        "Choose the address change, license, vehicle, voter, tax, or mailing address option.",
+        "Enter your new address exactly as it should appear on official records.",
+        "Review any ID, vehicle, or mailing record that may need a separate update.",
+        "Submit and save the confirmation number or receipt if one is provided.",
       ],
       Subscriptions: [
         `Open ${name} account settings.`,
-        "Update your shipping address.",
-        "Update your billing address and saved payment details if needed.",
+        "Find profile, billing, subscription, or saved address settings.",
+        "Update your mailing or shipping address.",
+        "Update billing address and saved payment details if needed.",
+        "Save changes and check the next renewal or delivery details.",
       ],
       "Delivery Apps": [
         `Open ${name} profile or saved addresses.`,
         "Update your home, delivery, and checkout default addresses.",
+        "Review billing address or payment profile details if shown.",
         "Remove the old address if you no longer want it offered at checkout.",
+        "Save changes and confirm the new address is the default.",
       ],
       "Shopping / Ecommerce": [
         `Open ${name} account settings or address book.`,
-        "Update your shipping address.",
+        "Update your default shipping address.",
         "Update your billing address and saved checkout defaults.",
+        "Review saved payment methods if the billing address is tied to a card.",
+        "Save changes before placing any new orders.",
       ],
       Insurance: [
         `Log in to ${name} or contact your agent.`,
-        "Update your mailing address and contact address.",
+        "Find profile, policy, contact, or mailing address settings.",
+        "Update your mailing and contact address.",
         "Review whether the move affects policy documents, premiums, or renewal notices.",
+        "Save the update or request confirmation from your agent.",
       ],
       Healthcare: [
         `Open ${name} member portal or patient profile.`,
-        "Update your mailing address and contact address.",
+        "Find profile, member details, patient info, or contact settings.",
+        "Update your mailing and contact address.",
         "Check benefits, claims, pharmacy, and paperless communication preferences.",
+        "Save changes and confirm the new address is shown on your profile.",
       ],
       "Work / Payroll": [
         `Open ${name} or your HR portal.`,
+        "Find personal info, HR profile, payroll, benefits, or tax form settings.",
         "Update your HR or payroll address.",
-        "Confirm tax forms, benefits, and payroll records use the new address.",
+        "Confirm tax forms, benefits, retirement, and payroll records use the new address.",
+        "Save changes or notify HR if the portal requires approval.",
       ],
     };
 
@@ -536,15 +561,31 @@ function App() {
       `Open ${name} account settings.`,
       "Update your mailing address.",
       "Confirm billing, shipping, and notification preferences before saving.",
+      "Save changes and look for a confirmation message.",
     ];
   };
 
-  const getRequiredInfoChecklist = () => [
-    { label: "Full name", value: savedName },
-    { label: "New address", value: savedAddress },
-    { label: "Email", value: email },
-    { label: "Phone", value: phone },
-  ];
+  const getRequiredInfoChecklist = () => {
+    const info = [
+      { label: "Full name", value: savedName },
+      { label: "New address", value: savedAddress },
+      { label: "Email", value: email },
+      { label: "Phone", value: phone },
+    ];
+
+    if (moveDate) {
+      info.push({ label: "Move date", value: moveDate });
+    }
+
+    return info;
+  };
+
+  const toggleCompletionCheck = (key) => {
+    setCompletionChecks(checks => ({
+      ...checks,
+      [key]: !checks[key],
+    }));
+  };
 
   const goToWelcome = () => {
     setCurrentView("welcome");
@@ -618,6 +659,11 @@ function App() {
     setSearch("");
     setCopiedKey("");
     setIsEditingProfile(false);
+    setCompletionChecks({
+      mailing: false,
+      secondaryAddress: false,
+      saved: false,
+    });
     setHasCompletedOnboarding(true);
     setCurrentView("profile");
   };
@@ -645,8 +691,14 @@ function App() {
   };
 
   const openTask = (cat, item) => {
+    const isCompleted = getItemStatus(item) === "completed";
     setActiveCategory(cat);
     setSelectedItemId(item.id);
+    setCompletionChecks({
+      mailing: isCompleted,
+      secondaryAddress: isCompleted,
+      saved: isCompleted,
+    });
     setCurrentView("task");
     if (getItemStatus(item) === "not_started") {
       updateItemStatus(cat, item.id, "in_progress");
@@ -662,6 +714,7 @@ function App() {
 
   const markSelectedTaskComplete = () => {
     if (!activeCategory || !selectedItemId) return;
+    if (!Object.values(completionChecks).every(Boolean)) return;
     updateItemStatus(activeCategory, selectedItemId, "completed");
   };
 
@@ -735,6 +788,7 @@ function App() {
 
   const savedName = `${firstName} ${lastName}`.trim();
   const savedAddress = [street, address2, city, state, zip, country].filter(Boolean).join(", ");
+  const moveDate = localStorage.getItem("mm-move-date") || localStorage.getItem("movemate-move-date") || "";
   const fullProfileText = [
     savedName && `Name: ${savedName}`,
     email && `Email: ${email}`,
@@ -1149,6 +1203,12 @@ function App() {
     const selectedStatus = getItemStatus(selectedItem);
     const taskGuidance = getTaskGuidance(activeCategory, selectedItem.text);
     const requiredInfo = getRequiredInfoChecklist();
+    const canCompleteTask = selectedStatus === "completed" || Object.values(completionChecks).every(Boolean);
+    const completionConfidenceItems = [
+      { key: "mailing", label: "I updated my mailing address" },
+      { key: "secondaryAddress", label: "I updated my billing/shipping address if needed" },
+      { key: "saved", label: "I confirmed changes were saved" },
+    ];
 
     return (
       <Centered>
@@ -1178,8 +1238,8 @@ function App() {
           </div>
 
           <div style={guidanceCard}>
-            <div style={eyebrow}>Step-by-step instructions</div>
-            <strong style={guidanceTitle}>How to update {selectedItem.text}</strong>
+            <div style={eyebrow}>Smart Update Assistant</div>
+            <strong style={guidanceTitle}>What to do</strong>
             <div style={guidanceList}>
               {taskGuidance.map((step, index) => (
                 <div key={step} style={guidanceStep}>
@@ -1191,12 +1251,12 @@ function App() {
           </div>
 
           <div style={guidanceCard}>
-            <div style={eyebrow}>Required info</div>
+            <div style={eyebrow}>Information you may need</div>
             <div style={requiredInfoGrid}>
               {requiredInfo.map(item => (
                 <div key={item.label} style={requiredInfoItem}>
                   <span style={infoLabel}>{item.label}</span>
-                  <strong style={detailValue}>{item.value}</strong>
+                  <strong style={detailValue}>{item.value || "Not provided"}</strong>
                 </div>
               ))}
             </div>
@@ -1209,6 +1269,27 @@ function App() {
                 {copiedKey === "detail-full" ? "Copied!" : "Copy Full Profile"}
               </button>
             </div>
+          </div>
+
+          <div style={guidanceCard}>
+            <div style={eyebrow}>Completion confidence</div>
+            <strong style={guidanceTitle}>Confirm before marking this done</strong>
+            <div style={completionChecklist}>
+              {completionConfidenceItems.map(item => (
+                <label key={item.key} style={completionCheckLabel}>
+                  <input
+                    type="checkbox"
+                    checked={completionChecks[item.key]}
+                    onChange={() => toggleCompletionCheck(item.key)}
+                    style={completionCheckInput}
+                  />
+                  <span>{item.label}</span>
+                </label>
+              ))}
+            </div>
+            {!canCompleteTask && (
+              <p style={confidenceNote}>Mark Completed unlocks after these checks are confirmed.</p>
+            )}
           </div>
 
           <div style={linkCard}>
@@ -1224,7 +1305,8 @@ function App() {
             </button>
             <button
               onClick={markSelectedTaskComplete}
-              style={selectedStatus === "completed" ? secondaryBtn : primaryBtn}
+              style={selectedStatus === "completed" ? secondaryBtn : canCompleteTask ? primaryBtn : primaryBtnDisabled}
+              disabled={!canCompleteTask}
             >
               Mark Completed
             </button>
@@ -2149,6 +2231,38 @@ const guidanceNumber = {
   color: "var(--accent-strong)",
   fontSize: 12,
   fontWeight: 900,
+};
+
+const completionChecklist = {
+  display: "grid",
+  gap: 10,
+};
+
+const completionCheckLabel = {
+  display: "grid",
+  gridTemplateColumns: "20px 1fr",
+  gap: 10,
+  alignItems: "flex-start",
+  color: "var(--text-h)",
+  fontSize: 14,
+  fontWeight: 700,
+  lineHeight: "145%",
+  cursor: "pointer",
+};
+
+const completionCheckInput = {
+  width: 16,
+  height: 16,
+  marginTop: 2,
+  accentColor: "var(--accent)",
+  cursor: "pointer",
+};
+
+const confidenceNote = {
+  margin: 0,
+  color: "var(--text)",
+  fontSize: 13,
+  fontWeight: 700,
 };
 
 const requiredInfoGrid = {
