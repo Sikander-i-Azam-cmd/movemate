@@ -67,6 +67,15 @@
         </div>
       </form>
 
+      <section class="importBox">
+        <div>
+          <span class="eyebrow">Import MoveMate Profile</span>
+          <p class="helper">Paste profile JSON copied from the MoveMate web app.</p>
+        </div>
+        <textarea id="profileJsonImport" rows="5" placeholder='{"firstName":"Alex","address1":"123 Main St"}'></textarea>
+        <button id="importProfile" class="secondary" type="button">Import Profile</button>
+      </section>
+
       <button id="fillPage" class="primary" type="button">Fill Current Page</button>
       <button id="forceFillPage" class="secondary" type="button">Force Fill</button>
       <p id="status" class="status" role="status" aria-live="polite"></p>

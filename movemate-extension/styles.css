@@ -97,6 +97,38 @@ input:focus {
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
 }
 
+.importBox {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid #dbe5f3;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.08);
+}
+
+textarea {
+  width: 100%;
+  min-height: 92px;
+  resize: vertical;
+  padding: 9px 11px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #172033;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.4;
+  outline-color: #2563eb;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease;
+}
+
+textarea:focus {
+  border-color: #2563eb;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+}
+
 .primary {
   min-height: 44px;
   border: 1px solid transparent;

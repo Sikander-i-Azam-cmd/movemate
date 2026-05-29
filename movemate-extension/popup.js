@@ -19,6 +19,8 @@ const fieldIds = [
 const form = document.getElementById("profileForm");
 const fillButton = document.getElementById("fillPage");
 const forceFillButton = document.getElementById("forceFillPage");
+const profileJsonImport = document.getElementById("profileJsonImport");
+const importProfileButton = document.getElementById("importProfile");
 const statusEl = document.getElementById("status");
 const resultsEl = document.getElementById("autofillResults");
 const filledCountEl = document.getElementById("filledCount");
@@ -46,6 +48,13 @@ const getProfileFromForm = () =>
   Object.fromEntries(
     fieldIds.map((id) => [id, document.getElementById(id).value.trim()])
   );
+
+const setProfileFormValues = (profile = {}) => {
+  fieldIds.forEach((id) => {
+    const fallbackValue = id === "address1" ? profile.street : "";
+    document.getElementById(id).value = profile[id] || fallbackValue || "";
+  });
+};
 
 const hasProfileValue = (profile) =>
   Object.values(profile).some((value) => Boolean(value));
@@ -109,10 +118,7 @@ const loadProfile = async () => {
   const result = await chrome.storage.local.get(STORAGE_KEY);
   const profile = result[STORAGE_KEY] || {};
 
-  fieldIds.forEach((id) => {
-    const fallbackValue = id === "address1" ? profile.street : "";
-    document.getElementById(id).value = profile[id] || fallbackValue || "";
-  });
+  setProfileFormValues(profile);
 };
 
 form.addEventListener("input", () => {
@@ -149,6 +155,58 @@ fillButton.addEventListener("click", () => {
 forceFillButton.addEventListener("click", () => {
   fillCurrentPage({ forceFill: true }).catch(() => {
     setStatus("Could not force fill the current page.", "error");
+  });
+});
+
+const getImportedProfile = (parsedProfile) => {
+  const importedProfile = {};
+
+  fieldIds.forEach((id) => {
+    importedProfile[id] = typeof parsedProfile[id] === "string" ? parsedProfile[id].trim() : "";
+  });
+
+  if (!importedProfile.address1 && typeof parsedProfile.street === "string") {
+    importedProfile.address1 = parsedProfile.street.trim();
+  }
+
+  if (!importedProfile.fullName) {
+    importedProfile.fullName = [importedProfile.firstName, importedProfile.lastName].filter(Boolean).join(" ");
+  }
+
+  return importedProfile;
+};
+
+const importProfile = async () => {
+  let parsedProfile;
+
+  try {
+    parsedProfile = JSON.parse(profileJsonImport.value);
+  } catch {
+    setStatus("That JSON could not be read. Check the pasted profile and try again.", "error");
+    return;
+  }
+
+  if (!parsedProfile || Array.isArray(parsedProfile) || typeof parsedProfile !== "object") {
+    setStatus("Paste a MoveMate profile JSON object, then try again.", "error");
+    return;
+  }
+
+  const importedProfile = getImportedProfile(parsedProfile);
+  if (!hasProfileValue(importedProfile)) {
+    setStatus("No profile fields were found in that JSON.", "error");
+    return;
+  }
+
+  setProfileFormValues(importedProfile);
+  await chrome.storage.local.set({ [STORAGE_KEY]: importedProfile });
+  profileJsonImport.value = "";
+  clearResults();
+  setStatus("Profile imported.", "success");
+};
+
+importProfileButton.addEventListener("click", () => {
+  importProfile().catch(() => {
+    setStatus("Could not import profile.", "error");
   });
 });
 
