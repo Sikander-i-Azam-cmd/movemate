@@ -65,9 +65,85 @@ const normalizeText = (value = "") =>
   value
     .replace(/([a-z])([A-Z])/g, "$1 $2")
     .replace(/[_-]+/g, " ")
+    .replace(/[.,]/g, " ")
+    .replace(/[^a-zA-Z0-9\s]/g, " ")
     .toLowerCase()
     .replace(/\s+/g, " ")
     .trim();
+
+const stateAliases = {
+  al: ["alabama"],
+  ak: ["alaska"],
+  az: ["arizona"],
+  ar: ["arkansas"],
+  ca: ["california"],
+  co: ["colorado"],
+  ct: ["connecticut"],
+  de: ["delaware"],
+  dc: ["district of columbia", "washington dc", "washington d c"],
+  fl: ["florida"],
+  ga: ["georgia"],
+  hi: ["hawaii"],
+  id: ["idaho"],
+  il: ["illinois"],
+  in: ["indiana"],
+  ia: ["iowa"],
+  ks: ["kansas"],
+  ky: ["kentucky"],
+  la: ["louisiana"],
+  me: ["maine"],
+  md: ["maryland"],
+  ma: ["massachusetts"],
+  mi: ["michigan"],
+  mn: ["minnesota"],
+  ms: ["mississippi"],
+  mo: ["missouri"],
+  mt: ["montana"],
+  ne: ["nebraska"],
+  nv: ["nevada"],
+  nh: ["new hampshire"],
+  nj: ["new jersey"],
+  nm: ["new mexico"],
+  ny: ["new york"],
+  nc: ["north carolina"],
+  nd: ["north dakota"],
+  oh: ["ohio"],
+  ok: ["oklahoma"],
+  or: ["oregon"],
+  pa: ["pennsylvania"],
+  ri: ["rhode island"],
+  sc: ["south carolina"],
+  sd: ["south dakota"],
+  tn: ["tennessee"],
+  tx: ["texas"],
+  ut: ["utah"],
+  vt: ["vermont"],
+  va: ["virginia"],
+  wa: ["washington"],
+  wv: ["west virginia"],
+  wi: ["wisconsin"],
+  wy: ["wyoming"],
+};
+
+const countryAliases = {
+  us: ["united states", "united states of america", "usa", "u s", "u s a", "america"],
+};
+
+const stateAliasLookup = Object.entries(stateAliases).reduce((lookup, [abbreviation, names]) => {
+  lookup[abbreviation] = abbreviation;
+  names.forEach((name) => {
+    lookup[normalizeText(name)] = abbreviation;
+  });
+  return lookup;
+}, {});
+
+const countryAliasLookup = Object.entries(countryAliases).reduce((lookup, [code, names]) => {
+  lookup[code] = code;
+  names.forEach((name) => {
+    lookup[normalizeText(name)] = code;
+  });
+  return lookup;
+}, {});
 
 const cssEscape = (value) => {
   if (window.CSS?.escape) return CSS.escape(value);
@@ -234,23 +310,66 @@ const fieldHasText = (field) => {
   return Boolean(field.value?.trim());
 };
 
-const setNativeValue = (field, value) => {
-  if (field.tagName === "SELECT") {
-    const lowerValue = value.toLowerCase();
-    const matchingOption = Array.from(field.options).find((option) =>
-      option.value.toLowerCase() === lowerValue ||
-      option.textContent.trim().toLowerCase() === lowerValue
-    );
+const getSelectAliases = (value, key) => {
+  const normalizedValue = normalizeText(value);
 
-    if (!matchingOption) return false;
-    field.value = matchingOption.value;
-  } else {
-    field.value = value;
+  if (key === "state") {
+    const stateCode = stateAliasLookup[normalizedValue];
+    if (!stateCode) return [normalizedValue];
+    return [stateCode, ...(stateAliases[stateCode] || [])].map(normalizeText);
   }
 
+  if (key === "country") {
+    const countryCode = countryAliasLookup[normalizedValue];
+    if (!countryCode) return [normalizedValue];
+    return [countryCode, ...(countryAliases[countryCode] || [])].map(normalizeText);
+  }
+
+  return [normalizedValue];
+};
+
+const getOptionAliases = (option, key) => {
+  const optionTexts = [option.value, option.textContent].map(normalizeText).filter(Boolean);
+  const expandedAliases = optionTexts.flatMap((optionText) => getSelectAliases(optionText, key));
+  return [...new Set([...optionTexts, ...expandedAliases])];
+};
+
+const findSelectOption = (field, value, key) => {
+  const valueAliases = getSelectAliases(value, key);
+  const options = Array.from(field.options);
+  const directMatch = options.find((option) =>
+    [option.value, option.textContent].some((text) =>
+      valueAliases.includes(normalizeText(text || ""))
+    )
+  );
+
+  if (directMatch) return directMatch;
+
+  return options.find((option) =>
+    getOptionAliases(option, key).some((optionAlias) => valueAliases.includes(optionAlias))
+  );
+};
+
+const setNativeValue = (field, value, key) => {
+  if (field.tagName === "SELECT") {
+    const matchingOption = findSelectOption(field, value, key);
+    if (!matchingOption) return { success: false };
+    field.value = matchingOption.value;
+    field.dispatchEvent(new Event("input", { bubbles: true }));
+    field.dispatchEvent(new Event("change", { bubbles: true }));
+    return {
+      success: true,
+      selectedOption: {
+        value: matchingOption.value,
+        text: matchingOption.textContent.trim(),
+      },
+    };
+  }
+
+  field.value = value;
   field.dispatchEvent(new Event("input", { bubbles: true }));
   field.dispatchEvent(new Event("change", { bubbles: true }));
-  return true;
+  return { success: true };
 };
 
 const fillPage = (profile, { forceFill = false } = {}) => {
@@ -299,7 +418,9 @@ const fillPage = (profile, { forceFill = false } = {}) => {
       return;
     }
 
-    if (setNativeValue(field, value)) {
+    const fillResult = setNativeValue(field, value, key);
+
+    if (fillResult.success) {
       result.fieldsFilled += 1;
       if (!result.filled.includes(key)) result.filled.push(key);
       result.skipped = result.skipped.filter((item) => item !== key);
@@ -308,6 +429,7 @@ const fillPage = (profile, { forceFill = false } = {}) => {
         matchedBy: match.matchedBy,
         matchedText: match.matchedText,
         selector: match.selector,
+        selectedOption: fillResult.selectedOption,
       };
     } else {
       result.details[key] = {
