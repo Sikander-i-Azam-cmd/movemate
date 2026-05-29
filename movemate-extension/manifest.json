@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "MoveMate Autofill MVP",
+  "version": "0.1.0",
+  "description": "Save move details locally and fill common address forms on the current page.",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "action": {
+    "default_title": "MoveMate",
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}
