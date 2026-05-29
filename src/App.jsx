@@ -1943,6 +1943,21 @@ function App() {
             </div>
           </div>
 
+          <div style={summaryProgressCard}>
+            <div>
+              <div style={eyebrow}>Progress summary</div>
+              <strong style={summaryProgressValue}>{progress}% complete</strong>
+            </div>
+            <div style={summaryProgressMeta}>
+              <span>{completedItems.length} completed</span>
+              <span>{remainingItems.length} remaining</span>
+              <span>{estimatedTimeSaved} minutes saved</span>
+            </div>
+            <div style={readinessTrack}>
+              <div style={{ ...readinessFill, width: `${progress}%` }} />
+            </div>
+          </div>
+
           <div style={summaryStatsGrid}>
             <div style={summaryStat}>
               <span style={infoLabel}>{summaryMode === "overall" ? "Categories included" : "Selected category"}</span>
@@ -1983,6 +1998,7 @@ function App() {
           <div style={quickActionsGrid}>
             <button onClick={downloadChecklist} style={primaryBtn}>Download Summary / Checklist</button>
             <button onClick={openChecklist} style={secondaryBtn}>Back to Categories</button>
+            <button onClick={startNewMove} style={restartGuidedBtn}>Restart Guided Flow</button>
           </div>
 
           <div style={sessionControlsCard}>
@@ -2341,8 +2357,43 @@ const summaryTitle = {
   marginBottom: 12,
 };
 
+const summaryProgressCard = {
+  display: "grid",
+  gap: 12,
+  margin: "0 0 18px",
+  padding: 18,
+  border: "1px solid var(--accent-border)",
+  borderRadius: 12,
+  background: "var(--action-bg)",
+  boxShadow: "var(--shadow-subtle)",
+};
+
+const summaryProgressValue = {
+  display: "block",
+  marginTop: 4,
+  color: "var(--text-h)",
+  fontSize: 30,
+  lineHeight: "100%",
+};
+
+const summaryProgressMeta = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
+  gap: 8,
+  color: "var(--text)",
+  fontSize: 13,
+  fontWeight: 800,
+};
+
 const summaryGroup = {
+  display: "grid",
+  gap: 8,
   marginBottom: 12,
+  padding: 16,
+  border: "1px solid var(--border)",
+  borderRadius: 12,
+  background: "var(--surface)",
+  boxShadow: "var(--shadow-subtle)",
 };
 
 const summaryStatsGrid = {
@@ -2840,6 +2891,13 @@ const secondaryBtn = {
   background: "var(--secondary-bg)",
   color: "var(--text-h)",
   borderColor: "var(--border)",
+};
+
+const restartGuidedBtn = {
+  ...secondaryBtn,
+  borderColor: "rgba(220, 38, 38, 0.18)",
+  background: "rgba(254, 226, 226, 0.72)",
+  color: "#b91c1c",
 };
 
 const sessionControlsCard = {
