@@ -20,6 +20,9 @@ const getProfileFromForm = () =>
     fieldIds.map((id) => [id, document.getElementById(id).value.trim()])
   );
 
+const hasProfileValue = (profile) =>
+  Object.values(profile).some((value) => Boolean(value));
+
 const setStatus = (message, type = "info") => {
   statusEl.textContent = message;
   statusEl.dataset.type = type;
@@ -27,7 +30,7 @@ const setStatus = (message, type = "info") => {
 
 const saveProfile = async () => {
   await chrome.storage.local.set({ [STORAGE_KEY]: getProfileFromForm() });
-  setStatus("Saved locally.");
+  setStatus("Saved.", "success");
 };
 
 const loadProfile = async () => {
@@ -48,6 +51,11 @@ form.addEventListener("input", () => {
 fillButton.addEventListener("click", async () => {
   const profile = getProfileFromForm();
   await chrome.storage.local.set({ [STORAGE_KEY]: profile });
+
+  if (!hasProfileValue(profile)) {
+    setStatus("Add at least one detail before filling the page.", "error");
+    return;
+  }
 
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab?.id) {
@@ -78,7 +86,7 @@ const sendFillMessage = (tabId, profile, hasInjected = false) => {
     }
 
     const count = response?.filledCount || 0;
-    setStatus(count ? `Filled ${count} field${count === 1 ? "" : "s"}.` : "No matching fields found.");
+    setStatus(count ? `Filled current page. ${count} field${count === 1 ? "" : "s"} updated.` : "No matching fields found.", count ? "success" : "info");
   });
 };
 
