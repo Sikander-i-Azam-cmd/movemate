@@ -9,6 +9,7 @@ function App() {
   const [selectedFlowCategories, setSelectedFlowCategories] = useState([]);
   const [summaryMode, setSummaryMode] = useState("selected");
   const [sessionMessage, setSessionMessage] = useState("");
+  const [feedbackMessage, setFeedbackMessage] = useState("");
   const [completionChecks, setCompletionChecks] = useState({
     mailing: false,
     secondaryAddress: false,
@@ -908,6 +909,14 @@ function App() {
   const startGuidedFlow = () => {
     clearMoveSession();
     setSessionMessage("");
+  };
+
+  const saveFeedback = (feedback) => {
+    localStorage.setItem("movemate-demo-feedback", JSON.stringify({
+      feedback,
+      savedAt: new Date().toISOString(),
+    }));
+    setFeedbackMessage("Thanks — feedback saved for this demo.");
   };
 
   const openOverallSummary = () => {
@@ -1988,6 +1997,19 @@ function App() {
             </div>
             {sessionMessage && <p style={sessionMessageText}>{sessionMessage}</p>}
           </div>
+
+          <div style={feedbackCard}>
+            <div>
+              <div style={eyebrow}>Demo feedback</div>
+              <strong style={feedbackTitle}>How was this experience?</strong>
+            </div>
+            <div style={feedbackActions}>
+              <button onClick={() => saveFeedback("Helpful")} style={feedbackBtn}>Helpful</button>
+              <button onClick={() => saveFeedback("Confusing")} style={feedbackBtn}>Confusing</button>
+              <button onClick={() => saveFeedback("Needs more automation")} style={feedbackBtn}>Needs more automation</button>
+            </div>
+            {feedbackMessage && <p style={feedbackMessageText}>{feedbackMessage}</p>}
+          </div>
         </div>
       </Centered>
     );
@@ -2863,6 +2885,48 @@ const sessionDangerBtn = {
 };
 
 const sessionMessageText = {
+  margin: 0,
+  color: "var(--accent-strong)",
+  fontSize: 13,
+  fontWeight: 800,
+};
+
+const feedbackCard = {
+  display: "grid",
+  gap: 12,
+  margin: "18px 0 0",
+  padding: 16,
+  border: "1px solid var(--border)",
+  borderRadius: 12,
+  background: "var(--surface)",
+  boxShadow: "var(--shadow-subtle)",
+};
+
+const feedbackTitle = {
+  display: "block",
+  marginTop: 4,
+  color: "var(--text-h)",
+  lineHeight: "135%",
+};
+
+const feedbackActions = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
+  gap: 10,
+};
+
+const feedbackBtn = {
+  ...buttonBase,
+  minHeight: 42,
+  marginTop: 0,
+  padding: "10px 12px",
+  borderColor: "var(--accent-border)",
+  background: "var(--accent-bg)",
+  color: "var(--accent-strong)",
+  fontSize: 14,
+};
+
+const feedbackMessageText = {
   margin: 0,
   color: "var(--accent-strong)",
   fontSize: 13,
