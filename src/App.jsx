@@ -1095,6 +1095,18 @@ function App() {
     savedAddress && `Address: ${savedAddress}`,
     moveDate && `Move date: ${moveDate}`,
   ].filter(Boolean).join("\n");
+  const extensionProfileJson = JSON.stringify({
+    firstName,
+    lastName,
+    email,
+    phone,
+    address1: street,
+    address2,
+    city,
+    state,
+    zip,
+    country,
+  }, null, 2);
 
   const copyText = (key, text) => {
     if (!text) return;
@@ -1417,6 +1429,22 @@ function App() {
               <button onClick={() => copyText("profile-full", fullProfileText)} style={copiedKey === "profile-full" ? copyBtnDone : copyBtn}>
                 {copiedKey === "profile-full" ? "Copied!" : "Copy Full Profile"}
               </button>
+            </div>
+          )}
+
+          {!isEditingProfile && (
+            <div style={extensionExportCard}>
+              <div>
+                <div style={eyebrow}>Use with Browser Extension</div>
+                <strong style={extensionExportTitle}>Copy your profile as JSON.</strong>
+                <p style={extensionExportCopy}>Use this profile data with the MoveMate browser extension when you want the same saved details available there.</p>
+              </div>
+              <button onClick={() => copyText("extension-profile-json", extensionProfileJson)} style={copiedKey === "extension-profile-json" ? copyBtnDone : copyBtn}>
+                Copy Profile JSON
+              </button>
+              {copiedKey === "extension-profile-json" && (
+                <p style={extensionExportSuccess}>Profile copied.</p>
+              )}
             </div>
           )}
 
@@ -3366,6 +3394,39 @@ const profileItem = {
 const profileItemWide = {
   ...profileItem,
   gridColumn: "1 / -1",
+};
+
+const extensionExportCard = {
+  display: "grid",
+  gap: 12,
+  marginTop: 14,
+  padding: 16,
+  border: "1px solid var(--border)",
+  borderRadius: 12,
+  background: "var(--surface)",
+  boxShadow: "var(--shadow-subtle)",
+};
+
+const extensionExportTitle = {
+  display: "block",
+  marginTop: 4,
+  color: "var(--text-h)",
+  lineHeight: "135%",
+};
+
+const extensionExportCopy = {
+  margin: "6px 0 0",
+  color: "var(--text)",
+  fontSize: 13,
+  fontWeight: 700,
+  lineHeight: "145%",
+};
+
+const extensionExportSuccess = {
+  margin: 0,
+  color: "#15803d",
+  fontSize: 13,
+  fontWeight: 800,
 };
 
 const profileValue = {
