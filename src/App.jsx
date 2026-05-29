@@ -85,6 +85,7 @@ function App() {
       { name: "SoFi", link: "https://www.sofi.com" },
       { name: "Chime", link: "https://www.chime.com" },
       { name: "Navy Federal Credit Union", link: "https://www.navyfederal.org" },
+      { name: "Discover Bank", link: "https://www.discover.com" },
     ],
 
     "Credit Cards": [
@@ -146,6 +147,13 @@ function App() {
       { name: "Gas Provider", link: "https://www.google.com/search?q=gas+provider+change+address" },
       { name: "Water Utility", link: "https://www.google.com/search?q=water+utility+change+address" },
       { name: "Trash / Recycling Service", link: "https://www.google.com/search?q=trash+recycling+service+change+address" },
+      { name: "TXU Energy", link: "https://www.txu.com" },
+      { name: "Reliant Energy", link: "https://www.reliant.com" },
+      { name: "Atmos Energy", link: "https://www.atmosenergy.com" },
+      { name: "Oncor", link: "https://www.oncor.com" },
+      { name: "City of Austin Utilities", link: "https://coautilities.com" },
+      { name: "Dallas Water Utilities", link: "https://dallascityhall.com/departments/waterutilities" },
+      { name: "Houston Public Works", link: "https://www.houstonpublicworks.org" },
       { name: "Xfinity", link: "https://www.xfinity.com" },
       { name: "Spectrum", link: "https://www.spectrum.com" },
       { name: "AT&T Internet", link: "https://www.att.com/internet" },
@@ -286,6 +294,7 @@ function App() {
       { name: "UnitedHealthcare", link: "https://www.uhc.com" },
       { name: "Cigna", link: "https://www.cigna.com" },
       { name: "Humana", link: "https://www.humana.com" },
+      { name: "Optum", link: "https://www.optum.com" },
       { name: "HSA Provider", link: "https://www.google.com/search?q=HSA+provider+change+address" },
       { name: "Aetna", link: "https://www.aetna.com" },
       { name: "Anthem", link: "https://www.anthem.com" },
@@ -329,6 +338,119 @@ function App() {
       { name: "Charles Schwab 401(k)", link: "https://www.schwab.com/workplace" },
       { name: "T. Rowe Price", link: "https://www.troweprice.com" },
     ],
+  };
+
+  const serviceDestinations = {
+    Banks: [
+      { name: "Chase", category: "Banks", website: "https://www.chase.com", accountUrl: "https://secure.chase.com/web/auth/#/logon/logon/chaseOnline" },
+      { name: "Bank of America", category: "Banks", website: "https://www.bankofamerica.com", accountUrl: "https://secure.bankofamerica.com/login/sign-in/signOnV2Screen.go" },
+      { name: "Wells Fargo", category: "Banks", website: "https://www.wellsfargo.com", accountUrl: "https://connect.secure.wellsfargo.com/auth/login/present" },
+      { name: "Capital One", category: "Banks", website: "https://www.capitalone.com", accountUrl: "https://verified.capitalone.com/auth/signin" },
+      { name: "Citibank", category: "Banks", website: "https://www.citi.com", accountUrl: "https://online.citi.com/US/login.do", aliases: ["Citi"] },
+      { name: "PNC Bank", category: "Banks", website: "https://www.pnc.com", accountUrl: "https://www.pnc.com/en/personal-banking.html" },
+      { name: "US Bank", category: "Banks", website: "https://www.usbank.com", accountUrl: "https://onlinebanking.usbank.com/Auth/Login" },
+      { name: "Truist", category: "Banks", website: "https://www.truist.com", accountUrl: "https://bank.truist.com/web/en/login" },
+      { name: "Navy Federal Credit Union", category: "Banks", website: "https://www.navyfederal.org", accountUrl: "https://my.navyfederal.org/NFOAA_Auth/login.jsp" },
+      { name: "Discover Bank", category: "Banks", website: "https://www.discover.com", accountUrl: "https://portal.discover.com/customersvcs/universalLogin/ac_main" },
+    ],
+    "Credit Cards": [
+      { name: "American Express", category: "Credit Cards", website: "https://www.americanexpress.com", accountUrl: "https://global.americanexpress.com/login", aliases: ["Amex"] },
+      { name: "Discover", category: "Credit Cards", website: "https://www.discover.com", accountUrl: "https://portal.discover.com/customersvcs/universalLogin/ac_main", aliases: ["Discover Card"] },
+      { name: "Capital One", category: "Credit Cards", website: "https://www.capitalone.com", accountUrl: "https://verified.capitalone.com/auth/signin", aliases: ["Capital One Card"] },
+      { name: "Citi Cards", category: "Credit Cards", website: "https://www.citi.com/credit-cards", accountUrl: "https://online.citi.com/US/login.do", aliases: ["Citi Card"] },
+      { name: "Chase Credit Cards", category: "Credit Cards", website: "https://creditcards.chase.com", accountUrl: "https://secure.chase.com/web/auth/#/logon/logon/chaseOnline", aliases: ["Chase Card"] },
+    ],
+    Insurance: [
+      { name: "Progressive", category: "Insurance", website: "https://www.progressive.com", accountUrl: "https://www.progressive.com/manage-policy/" },
+      { name: "GEICO", category: "Insurance", website: "https://www.geico.com", accountUrl: "https://www.geico.com/account/" },
+      { name: "State Farm", category: "Insurance", website: "https://www.statefarm.com", accountUrl: "https://www.statefarm.com/customer-care/login" },
+      { name: "Allstate", category: "Insurance", website: "https://www.allstate.com", accountUrl: "https://myaccountrwd.allstate.com/anon/account/login" },
+      { name: "Farmers Insurance", category: "Insurance", website: "https://www.farmers.com", accountUrl: "https://www.farmers.com/login/", aliases: ["Farmers"] },
+      { name: "USAA", category: "Insurance", website: "https://www.usaa.com", accountUrl: "https://www.usaa.com/inet/ent_logon/Logon" },
+    ],
+    Utilities: [
+      { name: "TXU Energy", category: "Utilities", website: "https://www.txu.com", accountUrl: "https://myaccount.txu.com/" },
+      { name: "Reliant Energy", category: "Utilities", website: "https://www.reliant.com", accountUrl: "https://www.reliant.com/en/residential/myaccount/index.jsp" },
+      { name: "Atmos Energy", category: "Utilities", website: "https://www.atmosenergy.com", accountUrl: "https://www.atmosenergy.com/accountcenter/logon" },
+      { name: "Oncor", category: "Utilities", website: "https://www.oncor.com" },
+      { name: "City of Austin Utilities", category: "Utilities", website: "https://coautilities.com", accountUrl: "https://coautilities.com/wps/wcm/connect/occ/coa/util/support/login" },
+      { name: "Dallas Water Utilities", category: "Utilities", website: "https://dallascityhall.com/departments/waterutilities" },
+      { name: "Houston Public Works", category: "Utilities", website: "https://www.houstonpublicworks.org" },
+      { name: "Xfinity", category: "Utilities", website: "https://www.xfinity.com", accountUrl: "https://login.xfinity.com/login" },
+      { name: "Spectrum", category: "Utilities", website: "https://www.spectrum.com", accountUrl: "https://www.spectrum.net/login/" },
+      { name: "AT&T Internet", category: "Utilities", website: "https://www.att.com/internet", accountUrl: "https://signin.att.com/" },
+    ],
+    Subscriptions: [
+      { name: "Netflix", category: "Subscriptions", website: "https://www.netflix.com", accountUrl: "https://www.netflix.com/YourAccount", profileUrl: "https://www.netflix.com/profiles/manage" },
+      { name: "Hulu", category: "Subscriptions", website: "https://www.hulu.com", accountUrl: "https://secure.hulu.com/account" },
+      { name: "Disney+", category: "Subscriptions", website: "https://www.disneyplus.com", accountUrl: "https://www.disneyplus.com/account" },
+      { name: "Max (HBO)", category: "Subscriptions", website: "https://www.max.com", accountUrl: "https://auth.max.com/login", aliases: ["Max"] },
+      { name: "Spotify", category: "Subscriptions", website: "https://www.spotify.com", accountUrl: "https://www.spotify.com/account/overview/", profileUrl: "https://www.spotify.com/account/profile/" },
+      { name: "Apple Music", category: "Subscriptions", website: "https://www.apple.com/music", accountUrl: "https://account.apple.com" },
+      { name: "YouTube Premium", category: "Subscriptions", website: "https://www.youtube.com/premium", accountUrl: "https://www.youtube.com/paid_memberships" },
+      { name: "Audible", category: "Subscriptions", website: "https://www.audible.com", accountUrl: "https://www.audible.com/account/overview" },
+    ],
+    "Delivery Apps": [
+      { name: "Uber Eats", category: "Delivery Apps", website: "https://www.ubereats.com", accountUrl: "https://www.ubereats.com/account" },
+      { name: "DoorDash", category: "Delivery Apps", website: "https://www.doordash.com", accountUrl: "https://www.doordash.com/consumer/account/" },
+      { name: "Grubhub", category: "Delivery Apps", website: "https://www.grubhub.com", accountUrl: "https://www.grubhub.com/account" },
+      { name: "Instacart", category: "Delivery Apps", website: "https://www.instacart.com", accountUrl: "https://www.instacart.com/store/account" },
+    ],
+    "Shopping / Ecommerce": [
+      { name: "Amazon", category: "Shopping / Ecommerce", website: "https://www.amazon.com", accountUrl: "https://www.amazon.com/gp/css/homepage.html", settingsUrl: "https://www.amazon.com/a/addresses" },
+      { name: "Walmart", category: "Shopping / Ecommerce", website: "https://www.walmart.com", accountUrl: "https://www.walmart.com/account" },
+      { name: "Target", category: "Shopping / Ecommerce", website: "https://www.target.com", accountUrl: "https://www.target.com/account" },
+      { name: "eBay", category: "Shopping / Ecommerce", website: "https://www.ebay.com", accountUrl: "https://www.ebay.com/mys/home", settingsUrl: "https://accountsettings.ebay.com/uas" },
+      { name: "Etsy", category: "Shopping / Ecommerce", website: "https://www.etsy.com", accountUrl: "https://www.etsy.com/your/account" },
+      { name: "Chewy", category: "Shopping / Ecommerce", website: "https://www.chewy.com", accountUrl: "https://www.chewy.com/app/account" },
+    ],
+    "Government / DMV": [
+      { name: "USPS Change of Address", category: "Government / DMV", website: "https://www.usps.com", accountUrl: "https://moversguide.usps.com", aliases: ["USPS"] },
+      { name: "DMV", category: "Government / DMV", website: "https://www.usa.gov/motor-vehicle-services" },
+      { name: "IRS", category: "Government / DMV", website: "https://www.irs.gov", accountUrl: "https://www.irs.gov/forms-pubs/about-form-8822" },
+      { name: "Social Security Administration", category: "Government / DMV", website: "https://www.ssa.gov", accountUrl: "https://www.ssa.gov/myaccount/", aliases: ["SSA"] },
+    ],
+    Healthcare: [
+      { name: "CVS", category: "Healthcare", website: "https://www.cvs.com", accountUrl: "https://www.cvs.com/account/login" },
+      { name: "Walgreens", category: "Healthcare", website: "https://www.walgreens.com", accountUrl: "https://www.walgreens.com/login.jsp" },
+      { name: "Optum", category: "Healthcare", website: "https://www.optum.com", accountUrl: "https://www.optum.com/sign-in.html" },
+      { name: "Cigna", category: "Healthcare", website: "https://www.cigna.com", accountUrl: "https://my.cigna.com" },
+      { name: "Aetna", category: "Healthcare", website: "https://www.aetna.com", accountUrl: "https://member.aetna.com" },
+    ],
+    "Work / Payroll": [
+      { name: "ADP", category: "Work / Payroll", website: "https://www.adp.com", accountUrl: "https://www.adp.com/logins.aspx", profileUrl: "https://signin.adp.com" },
+      { name: "Workday", category: "Work / Payroll", website: "https://www.workday.com", accountUrl: "https://www.myworkday.com" },
+      { name: "Paychex", category: "Work / Payroll", website: "https://www.paychex.com", accountUrl: "https://myapps.paychex.com" },
+      { name: "Gusto", category: "Work / Payroll", website: "https://gusto.com", accountUrl: "https://app.gusto.com/login" },
+    ],
+  };
+
+  const normalizeServiceName = (value = "") =>
+    value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+
+  const findServiceDestination = (cat, serviceName) => {
+    const normalizedName = normalizeServiceName(serviceName);
+    return (serviceDestinations[cat] || []).find(destination => {
+      const names = [destination.name, ...(destination.aliases || [])];
+      return names.some(name => normalizeServiceName(name) === normalizedName);
+    });
+  };
+
+  const getDestinationActions = (destination, fallbackUrl) => {
+    const normalizeDestinationUrl = (url = "") => url.replace(/\/+$/, "");
+
+    const destinations = [
+      { label: "Open Account Page", url: destination?.accountUrl },
+      { label: "Open Profile Page", url: destination?.profileUrl },
+      { label: "Open Settings Page", url: destination?.settingsUrl },
+      { label: "Open Website", url: destination?.website || fallbackUrl },
+    ].filter(item => item.url);
+
+    const uniqueDestinations = destinations.filter((item, index, all) =>
+      all.findIndex(candidate => normalizeDestinationUrl(candidate.url) === normalizeDestinationUrl(item.url)) === index
+    );
+
+    return uniqueDestinations;
   };
 
   const normalizeItem = ({ completed, ...item }) => ({
@@ -994,7 +1116,10 @@ function App() {
     const lower = name.toLowerCase();
     for (const cat in masterLists) {
       const match = masterLists[cat].find(i => i.name.toLowerCase() === lower);
-      if (match) return match.link;
+      if (match) {
+        const destination = findServiceDestination(cat, match.name);
+        return destination?.accountUrl || destination?.website || match.link;
+      }
     }
     return `https://www.google.com/search?q=${encodeURIComponent(name + " change address")}`;
   };
@@ -1577,6 +1702,9 @@ function App() {
     const selectedStatus = getItemStatus(selectedItem);
     const taskGuidance = getTaskGuidance(activeCategory, selectedItem.text);
     const requiredInfo = getRequiredInfoChecklist();
+    const selectedDestination = findServiceDestination(activeCategory, selectedItem.text);
+    const destinationActions = getDestinationActions(selectedDestination, selectedItem.link);
+    const primaryDestinationUrl = destinationActions[0]?.url || selectedItem.link;
     const canCompleteTask = selectedStatus === "completed" || Object.values(completionChecks).every(Boolean);
     const completionConfidenceItems = [
       { key: "mailing", label: "I updated my mailing address" },
@@ -1690,14 +1818,19 @@ function App() {
 
             <div style={linkCard}>
               <span style={infoLabel}>{selectedItem.text} page</span>
-              <a href={selectedItem.link} target="_blank" rel="noreferrer" style={detailLink}>
-                {selectedItem.link}
+              <a href={primaryDestinationUrl} target="_blank" rel="noreferrer" style={detailLink}>
+                {primaryDestinationUrl}
               </a>
             </div>
 
-            <button onClick={() => openUpdatePage(selectedItem.link)} style={launchPrimaryBtn}>
-              Open {selectedItem.text} Page
-            </button>
+            <div style={destinationActionGrid}>
+              {destinationActions.map(action => (
+                <button key={`${action.label}-${action.url}`} onClick={() => openUpdatePage(action.url)} style={launchPrimaryBtn}>
+                  {action.label}
+                </button>
+              ))}
+            </div>
+            <p style={destinationHelperText}>Some services may ask you to sign in before taking you to the account page.</p>
           </div>
 
           <div style={guidanceCard}>
@@ -3311,6 +3444,19 @@ const launchCopyActions = {
   display: "grid",
   gridTemplateColumns: "1fr 1fr",
   gap: 10,
+};
+
+const destinationActionGrid = {
+  display: "grid",
+  gap: 10,
+};
+
+const destinationHelperText = {
+  margin: 0,
+  color: "var(--text)",
+  fontSize: 13,
+  fontWeight: 700,
+  lineHeight: "145%",
 };
 
 const launchPrimaryBtn = {
