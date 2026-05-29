@@ -1,15 +1,31 @@
+/* global chrome */
+
+const targetFields = [
+  "firstName",
+  "lastName",
+  "fullName",
+  "email",
+  "phone",
+  "address1",
+  "address2",
+  "city",
+  "state",
+  "zip",
+  "country",
+];
+
 const fieldMatchers = [
   {
     key: "firstName",
-    aliases: ["first name", "firstname", "first-name", "given name", "given-name", "fname"],
+    aliases: ["first name", "firstname", "first-name", "given name", "given-name", "fname", "first"],
   },
   {
     key: "lastName",
-    aliases: ["last name", "lastname", "last-name", "family name", "family-name", "surname", "lname"],
+    aliases: ["last name", "lastname", "last-name", "family name", "family-name", "surname", "lname", "last"],
   },
   {
     key: "fullName",
-    aliases: ["full name", "fullname", "full-name", "your name", "contact name", "name"],
+    aliases: ["full name", "fullname", "full-name", "your name", "contact name", "customer name", "recipient name"],
   },
   {
     key: "email",
@@ -24,7 +40,7 @@ const fieldMatchers = [
     aliases: ["address line 2", "address line2", "address2", "address_2", "address-line-2", "apt", "apartment", "suite", "unit"],
   },
   {
-    key: "street",
+    key: "address1",
     aliases: ["street address", "address line 1", "address line1", "address1", "address_1", "address-line-1", "street", "addr1"],
   },
   {
@@ -53,15 +69,27 @@ const normalizeText = (value = "") =>
     .replace(/\s+/g, " ")
     .trim();
 
+const cssEscape = (value) => {
+  if (window.CSS?.escape) return CSS.escape(value);
+  return value.replace(/["\\]/g, "\\$&");
+};
+
+const getUsefulText = (element) =>
+  normalizeText(element?.textContent || "").slice(0, 220);
+
 const getNearbyText = (field) => {
   const textParts = [];
   const parent = field.parentElement;
+  const grandparent = parent?.parentElement;
   const previous = field.previousElementSibling;
   const next = field.nextElementSibling;
 
-  if (previous) textParts.push(previous.textContent);
-  if (next?.tagName === "LABEL") textParts.push(next.textContent);
-  if (parent && parent !== document.body) textParts.push(parent.textContent);
+  if (previous) textParts.push(getUsefulText(previous));
+  if (next?.tagName === "LABEL") textParts.push(getUsefulText(next));
+  if (parent && parent !== document.body) textParts.push(getUsefulText(parent));
+  if (grandparent && grandparent !== document.body && getUsefulText(parent).length < 24) {
+    textParts.push(getUsefulText(grandparent));
+  }
 
   return textParts.join(" ");
 };
@@ -70,7 +98,7 @@ const getLabelText = (field) => {
   const labels = [];
 
   if (field.id) {
-    const explicitLabel = document.querySelector(`label[for="${CSS.escape(field.id)}"]`);
+    const explicitLabel = document.querySelector(`label[for="${cssEscape(field.id)}"]`);
     if (explicitLabel) labels.push(explicitLabel.textContent);
   }
 
@@ -81,15 +109,16 @@ const getLabelText = (field) => {
   return labels.join(" ");
 };
 
-const getFieldSignature = (field) =>
-  normalizeText([
-    field.name,
-    field.id,
-    field.placeholder,
-    field.getAttribute("aria-label"),
-    field.getAttribute("autocomplete"),
-    getLabelText(field),
-  ].filter(Boolean).join(" "));
+const getFieldSignals = (field) => [
+  { matchedBy: "autocomplete", text: field.getAttribute("autocomplete") },
+  { matchedBy: "name", text: field.name },
+  { matchedBy: "id", text: field.id },
+  { matchedBy: "placeholder", text: field.placeholder },
+  { matchedBy: "aria-label", text: field.getAttribute("aria-label") },
+  { matchedBy: "label", text: getLabelText(field) },
+  { matchedBy: "container text", text: getNearbyText(field) },
+].map((signal) => ({ ...signal, normalized: normalizeText(signal.text || "") }))
+  .filter((signal) => signal.normalized);
 
 const hasAliasMatch = (signature, alias) => {
   const normalizedAlias = normalizeText(alias);
@@ -97,36 +126,104 @@ const hasAliasMatch = (signature, alias) => {
   return boundaryPattern.test(signature);
 };
 
+const getFieldSelector = (field) => {
+  const tag = field.tagName.toLowerCase();
+  if (field.id) return `${tag}#${cssEscape(field.id)}`;
+  if (field.name) return `${tag}[name="${field.name.replace(/"/g, '\\"')}"]`;
+  if (field.getAttribute("autocomplete")) {
+    return `${tag}[autocomplete="${field.getAttribute("autocomplete").replace(/"/g, '\\"')}"]`;
+  }
+  if (field.placeholder) return `${tag}[placeholder="${field.placeholder.replace(/"/g, '\\"')}"]`;
+  return tag;
+};
+
 const findProfileKeyForField = (field) => {
-  const signature = getFieldSignature(field);
-  const autocomplete = normalizeText(field.getAttribute("autocomplete") || "");
+  const signals = getFieldSignals(field);
+  const autocomplete = signals.find((signal) => signal.matchedBy === "autocomplete")?.normalized || "";
+  const autocompleteMatches = [
+    ["given name", "firstName"],
+    ["family name", "lastName"],
+    ["email", "email"],
+    ["tel", "phone"],
+    ["street address", "address1"],
+    ["address line1", "address1"],
+    ["address line 1", "address1"],
+    ["address line2", "address2"],
+    ["address line 2", "address2"],
+    ["address level2", "city"],
+    ["address level1", "state"],
+    ["postal code", "zip"],
+    ["country", "country"],
+  ];
+  const autocompleteMatch = autocompleteMatches.find(([alias]) => autocomplete.includes(alias));
 
-  if (autocomplete.includes("given name")) return "firstName";
-  if (autocomplete.includes("family name")) return "lastName";
-  if (autocomplete === "name" || autocomplete.endsWith(" name")) return "fullName";
-  if (autocomplete.includes("email")) return "email";
-  if (autocomplete.includes("tel")) return "phone";
-  if (autocomplete.includes("street address")) return "street";
-  if (autocomplete.includes("address line1")) return "street";
-  if (autocomplete.includes("address line2")) return "address2";
-  if (autocomplete.includes("address level2")) return "city";
-  if (autocomplete.includes("address level1")) return "state";
-  if (autocomplete.includes("postal code")) return "zip";
-  if (autocomplete.includes("country")) return "country";
+  if (autocomplete === "name") {
+    return { key: "fullName", matchedBy: "autocomplete", matchedText: autocomplete, selector: getFieldSelector(field) };
+  }
 
-  return fieldMatchers.find(({ aliases }) =>
-    aliases.some((alias) => hasAliasMatch(signature, alias))
-  )?.key;
+  if (autocompleteMatch) {
+    return {
+      key: autocompleteMatch[1],
+      matchedBy: "autocomplete",
+      matchedText: autocompleteMatch[0],
+      selector: getFieldSelector(field),
+    };
+  }
+
+  const exactNameSignal = signals.find((signal) =>
+    signal.matchedBy !== "container text" && signal.normalized === "name"
+  );
+  if (exactNameSignal) {
+    return {
+      key: "fullName",
+      matchedBy: exactNameSignal.matchedBy,
+      matchedText: "name",
+      selector: getFieldSelector(field),
+    };
+  }
+
+  const exactAddressSignal = signals.find((signal) =>
+    signal.matchedBy !== "container text" && signal.normalized === "address"
+  );
+  if (exactAddressSignal) {
+    return {
+      key: "address1",
+      matchedBy: exactAddressSignal.matchedBy,
+      matchedText: "address",
+      selector: getFieldSelector(field),
+    };
+  }
+
+  for (const signal of signals) {
+    for (const matcher of fieldMatchers) {
+      const alias = matcher.aliases.find((candidate) => hasAliasMatch(signal.normalized, candidate));
+      if (alias) {
+        return {
+          key: matcher.key,
+          matchedBy: signal.matchedBy,
+          matchedText: alias,
+          selector: getFieldSelector(field),
+        };
+      }
+    }
+  }
+
+  return null;
 };
 
 const getProfileValue = (profile, key) => {
   if (!key) return "";
   if (profile[key]) return profile[key];
+  if (key === "address1") return profile.address1 || profile.street || "";
 
   if ((key === "firstName" || key === "lastName") && profile.fullName) {
     const nameParts = profile.fullName.trim().split(/\s+/);
     if (key === "firstName") return nameParts[0] || "";
     if (key === "lastName") return nameParts.slice(1).join(" ");
+  }
+
+  if (key === "fullName") {
+    return [profile.firstName, profile.lastName].filter(Boolean).join(" ");
   }
 
   return "";
@@ -165,25 +262,83 @@ const fillPage = (profile, { forceFill = false } = {}) => {
       (field.tagName !== "INPUT" || supportedInputTypes.has(field.type))
     ));
 
-  let filledCount = 0;
-  let skippedExistingCount = 0;
+  const result = {
+    totalDetected: 0,
+    fieldsDetected: 0,
+    fieldsFilled: 0,
+    fieldsSkipped: 0,
+    fieldsNotFound: 0,
+    filled: [],
+    skipped: [],
+    notFound: [],
+    details: {},
+  };
+  const matchedKeys = new Set();
 
   fields.forEach((field) => {
-    const key = findProfileKeyForField(field);
+    const match = findProfileKeyForField(field);
+    const key = match?.key;
     const value = getProfileValue(profile, key);
 
     if (!key || !value) return;
+    matchedKeys.add(key);
+    result.totalDetected += 1;
+
     if (!forceFill && fieldHasText(field)) {
-      skippedExistingCount += 1;
+      result.fieldsSkipped += 1;
+      if (!result.skipped.includes(key) && !result.filled.includes(key)) result.skipped.push(key);
+      if (result.details[key]?.status !== "filled") {
+        result.details[key] = {
+          status: "skipped",
+          matchedBy: match.matchedBy,
+          matchedText: match.matchedText,
+          selector: match.selector,
+          reason: "existing value",
+        };
+      }
       return;
     }
 
     if (setNativeValue(field, value)) {
-      filledCount += 1;
+      result.fieldsFilled += 1;
+      if (!result.filled.includes(key)) result.filled.push(key);
+      result.skipped = result.skipped.filter((item) => item !== key);
+      result.details[key] = {
+        status: "filled",
+        matchedBy: match.matchedBy,
+        matchedText: match.matchedText,
+        selector: match.selector,
+      };
+    } else {
+      result.details[key] = {
+        status: "notFilled",
+        matchedBy: match.matchedBy,
+        matchedText: match.matchedText,
+        selector: match.selector,
+        reason: "no matching select option",
+      };
     }
   });
 
-  return { filledCount, skippedExistingCount };
+  targetFields.forEach((key) => {
+    if (!getProfileValue(profile, key)) return;
+    if (matchedKeys.has(key)) return;
+    if ((key === "firstName" || key === "lastName") && !profile[key] && matchedKeys.has("fullName")) return;
+    if (key === "fullName" && !profile.fullName && (matchedKeys.has("firstName") || matchedKeys.has("lastName"))) return;
+    result.notFound.push(key);
+    result.details[key] = {
+      status: "notFound",
+      matchedBy: null,
+      selector: null,
+    };
+  });
+
+  result.fieldsDetected = result.totalDetected;
+  result.fieldsNotFound = result.notFound.length;
+  result.filledCount = result.fieldsFilled;
+  result.skippedExistingCount = result.fieldsSkipped;
+
+  return result;
 };
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {

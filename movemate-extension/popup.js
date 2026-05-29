@@ -1,10 +1,15 @@
+/* global chrome */
+
 const STORAGE_KEY = "movemateProfile";
 
 const fieldIds = [
+  "firstName",
+  "lastName",
   "fullName",
   "email",
   "phone",
-  "street",
+  "address1",
+  "address2",
   "city",
   "state",
   "zip",
@@ -13,7 +18,29 @@ const fieldIds = [
 
 const form = document.getElementById("profileForm");
 const fillButton = document.getElementById("fillPage");
+const forceFillButton = document.getElementById("forceFillPage");
 const statusEl = document.getElementById("status");
+const resultsEl = document.getElementById("autofillResults");
+const filledCountEl = document.getElementById("filledCount");
+const skippedCountEl = document.getElementById("skippedCount");
+const notFoundCountEl = document.getElementById("notFoundCount");
+const filledFieldsEl = document.getElementById("filledFields");
+const skippedFieldsEl = document.getElementById("skippedFields");
+const notFoundFieldsEl = document.getElementById("notFoundFields");
+
+const fieldLabels = {
+  firstName: "First name",
+  lastName: "Last name",
+  fullName: "Full name",
+  email: "Email",
+  phone: "Phone",
+  address1: "Address line 1",
+  address2: "Address line 2",
+  city: "City",
+  state: "State",
+  zip: "Zip / postal code",
+  country: "Country",
+};
 
 const getProfileFromForm = () =>
   Object.fromEntries(
@@ -28,6 +55,51 @@ const setStatus = (message, type = "info") => {
   statusEl.dataset.type = type;
 };
 
+const clearResults = () => {
+  resultsEl.hidden = true;
+  [filledFieldsEl, skippedFieldsEl, notFoundFieldsEl].forEach((list) => {
+    list.textContent = "";
+  });
+};
+
+const getDetailText = (key, detail) => {
+  const label = fieldLabels[key] || key;
+  if (!detail?.matchedBy) return label;
+  return `${label} - matched by ${detail.matchedBy}`;
+};
+
+const renderList = (list, keys, details) => {
+  list.textContent = "";
+
+  if (!keys.length) {
+    const item = document.createElement("li");
+    item.textContent = "None";
+    list.append(item);
+    return;
+  }
+
+  keys.forEach((key) => {
+    const item = document.createElement("li");
+    item.textContent = getDetailText(key, details[key]);
+    list.append(item);
+  });
+};
+
+const showResults = (result = {}) => {
+  const filled = result.filled || [];
+  const skipped = result.skipped || [];
+  const notFound = result.notFound || [];
+  const details = result.details || {};
+
+  filledCountEl.textContent = String(result.fieldsFilled ?? filled.length);
+  skippedCountEl.textContent = String(result.fieldsSkipped ?? skipped.length);
+  notFoundCountEl.textContent = String(result.fieldsNotFound ?? notFound.length);
+  renderList(filledFieldsEl, filled, details);
+  renderList(skippedFieldsEl, skipped, details);
+  renderList(notFoundFieldsEl, notFound, details);
+  resultsEl.hidden = false;
+};
+
 const saveProfile = async () => {
   await chrome.storage.local.set({ [STORAGE_KEY]: getProfileFromForm() });
   setStatus("Saved.", "success");
@@ -38,7 +110,8 @@ const loadProfile = async () => {
   const profile = result[STORAGE_KEY] || {};
 
   fieldIds.forEach((id) => {
-    document.getElementById(id).value = profile[id] || "";
+    const fallbackValue = id === "address1" ? profile.street : "";
+    document.getElementById(id).value = profile[id] || fallbackValue || "";
   });
 };
 
@@ -48,9 +121,10 @@ form.addEventListener("input", () => {
   });
 });
 
-fillButton.addEventListener("click", async () => {
+const fillCurrentPage = async ({ forceFill = false } = {}) => {
   const profile = getProfileFromForm();
   await chrome.storage.local.set({ [STORAGE_KEY]: profile });
+  clearResults();
 
   if (!hasProfileValue(profile)) {
     setStatus("Add at least one detail before filling the page.", "error");
@@ -63,11 +137,23 @@ fillButton.addEventListener("click", async () => {
     return;
   }
 
-  sendFillMessage(tab.id, profile);
+  sendFillMessage(tab.id, profile, { forceFill });
+};
+
+fillButton.addEventListener("click", () => {
+  fillCurrentPage().catch(() => {
+    setStatus("Could not fill the current page.", "error");
+  });
 });
 
-const sendFillMessage = (tabId, profile, hasInjected = false) => {
-  chrome.tabs.sendMessage(tabId, { type: "MOVEMATE_FILL_PAGE", profile }, (response) => {
+forceFillButton.addEventListener("click", () => {
+  fillCurrentPage({ forceFill: true }).catch(() => {
+    setStatus("Could not force fill the current page.", "error");
+  });
+});
+
+const sendFillMessage = (tabId, profile, options = {}, hasInjected = false) => {
+  chrome.tabs.sendMessage(tabId, { type: "MOVEMATE_FILL_PAGE", profile, forceFill: Boolean(options.forceFill) }, (response) => {
     if (chrome.runtime.lastError) {
       if (hasInjected) {
         setStatus("Open a normal webpage, then try again.", "error");
@@ -80,13 +166,22 @@ const sendFillMessage = (tabId, profile, hasInjected = false) => {
           return;
         }
 
-        sendFillMessage(tabId, profile, true);
+        sendFillMessage(tabId, profile, options, true);
       });
       return;
     }
 
-    const count = response?.filledCount || 0;
-    setStatus(count ? `Filled current page. ${count} field${count === 1 ? "" : "s"} updated.` : "No matching fields found.", count ? "success" : "info");
+    const filledCount = response?.fieldsFilled ?? response?.filledCount ?? 0;
+    const skippedCount = response?.fieldsSkipped ?? response?.skippedExistingCount ?? 0;
+    const foundSomething = filledCount || skippedCount || response?.totalDetected;
+
+    showResults(response);
+    setStatus(
+      foundSomething
+        ? `${options.forceFill ? "Force filled" : "Filled"} current page. ${filledCount} field${filledCount === 1 ? "" : "s"} updated.`
+        : "No matching fields found.",
+      filledCount ? "success" : "info"
+    );
   });
 };
 

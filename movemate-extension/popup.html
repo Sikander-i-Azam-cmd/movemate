@@ -15,6 +15,16 @@
       </header>
 
       <form id="profileForm" class="form">
+        <div class="grid">
+          <label>
+            First name
+            <input id="firstName" name="firstName" autocomplete="given-name" />
+          </label>
+          <label>
+            Last name
+            <input id="lastName" name="lastName" autocomplete="family-name" />
+          </label>
+        </div>
         <label>
           Full name
           <input id="fullName" name="fullName" autocomplete="name" />
@@ -28,8 +38,12 @@
           <input id="phone" name="phone" autocomplete="tel" />
         </label>
         <label>
-          Street address
-          <input id="street" name="street" autocomplete="street-address" />
+          Address line 1
+          <input id="address1" name="address1" autocomplete="address-line1" />
+        </label>
+        <label>
+          Address line 2
+          <input id="address2" name="address2" autocomplete="address-line2" />
         </label>
         <div class="grid">
           <label>
@@ -54,7 +68,28 @@
       </form>
 
       <button id="fillPage" class="primary" type="button">Fill Current Page</button>
+      <button id="forceFillPage" class="secondary" type="button">Force Fill</button>
       <p id="status" class="status" role="status" aria-live="polite"></p>
+      <section id="autofillResults" class="results" hidden>
+        <h2>Autofill Results</h2>
+        <div class="resultCounts">
+          <span>Filled: <strong id="filledCount">0</strong></span>
+          <span>Skipped: <strong id="skippedCount">0</strong></span>
+          <span>Not Found: <strong id="notFoundCount">0</strong></span>
+        </div>
+        <div class="resultList">
+          <strong>✓ Filled fields</strong>
+          <ul id="filledFields"></ul>
+        </div>
+        <div class="resultList">
+          <strong>○ Skipped fields</strong>
+          <ul id="skippedFields"></ul>
+        </div>
+        <div class="resultList">
+          <strong>✗ Not found fields</strong>
+          <ul id="notFoundFields"></ul>
+        </div>
+      </section>
     </main>
 
     <script src="popup.js"></script>
