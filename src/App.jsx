@@ -1334,6 +1334,38 @@ function App() {
     return plan;
   };
 
+  const getMoveMateTiming = () => {
+    const timing = { beforeMove: [], moveWeek: [], afterMove: [] };
+    const plan = getMoveMatePlan();
+    const remainingItems = [...plan.high, ...plan.medium, ...plan.low];
+
+    remainingItems.forEach(item => {
+      const normalizedName = normalizeServiceName(item.name);
+
+      if (
+        normalizedName.includes("usps") ||
+        ["Utilities", "Insurance", "Work / Payroll", "Banks", "Credit Cards"].includes(item.cat)
+      ) {
+        timing.beforeMove.push(item);
+        return;
+      }
+
+      if (
+        normalizedName === "dmv" ||
+        normalizedName.includes("driver license") ||
+        normalizedName === "pharmacy" ||
+        ["Delivery Apps", "Shopping / Ecommerce", "Healthcare"].includes(item.cat)
+      ) {
+        timing.moveWeek.push(item);
+        return;
+      }
+
+      timing.afterMove.push(item);
+    });
+
+    return timing;
+  };
+
   const progress = (() => {
     const all = Object.values(categories).flat();
     const done = all.filter(i => getItemStatus(i) === "completed").length;
@@ -1389,6 +1421,7 @@ function App() {
     ));
     const recommendedNextUpdates = getRecommendedNextUpdates();
     const moveMatePlan = getMoveMatePlan();
+    const moveMateTiming = getMoveMateTiming();
     const formatServiceList = (items) => items.length
       ? items.map(item => `- ${item.cat}: ${item.text || item.name}`).join("\n")
       : "- None";
@@ -1424,7 +1457,15 @@ function App() {
     text += "Medium Priority\n";
     text += `${formatPlanList(moveMatePlan.medium)}\n\n`;
     text += "Low Priority\n";
-    text += `${formatPlanList(moveMatePlan.low)}\n`;
+    text += `${formatPlanList(moveMatePlan.low)}\n\n`;
+
+    text += "Timing guidance\n";
+    text += "Before Move\n";
+    text += `${formatPlanList(moveMateTiming.beforeMove)}\n\n`;
+    text += "Move Week\n";
+    text += `${formatPlanList(moveMateTiming.moveWeek)}\n\n`;
+    text += "After Move\n";
+    text += `${formatPlanList(moveMateTiming.afterMove)}\n`;
 
     return text;
   };
@@ -2219,10 +2260,16 @@ function App() {
     const priorityRecommendations = getPriorityRecommendations();
     const recommendedNextUpdates = getRecommendedNextUpdates();
     const moveMatePlan = getMoveMatePlan();
+    const moveMateTiming = getMoveMateTiming();
     const moveMatePlanGroups = [
       { key: "high", label: "High Priority" },
       { key: "medium", label: "Medium Priority" },
       { key: "low", label: "Low Priority" },
+    ];
+    const moveMateTimingGroups = [
+      { key: "beforeMove", label: "Before Move" },
+      { key: "moveWeek", label: "Move Week" },
+      { key: "afterMove", label: "After Move" },
     ];
     const completedItems = selectedSummaryCategories.flatMap(cat => (
       (categories[cat] || [])
@@ -2326,6 +2373,30 @@ function App() {
                   <strong style={moveMatePlanGroupTitle}>{group.label}</strong>
                   <div style={prioritySummaryList}>
                     {moveMatePlan[group.key].length ? moveMatePlan[group.key].map(item => (
+                      <div key={`${group.key}-${item.cat}-${item.name}`} style={prioritySummaryRow}>
+                        <strong style={prioritySummaryName}>{item.name}</strong>
+                        <span style={categoryBtnMeta}>{item.cat} - {item.source}</span>
+                      </div>
+                    )) : (
+                      <span style={moveMatePlanEmpty}>Nothing remaining</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div style={prioritySummaryCard}>
+            <div>
+              <div style={eyebrow}>Timing guidance</div>
+              <strong style={timelineTitle}>When to update each service</strong>
+            </div>
+            <div style={moveMatePlanGroupList}>
+              {moveMateTimingGroups.map(group => (
+                <div key={group.key} style={moveMatePlanGroup}>
+                  <strong style={moveMatePlanGroupTitle}>{group.label}</strong>
+                  <div style={prioritySummaryList}>
+                    {moveMateTiming[group.key].length ? moveMateTiming[group.key].map(item => (
                       <div key={`${group.key}-${item.cat}-${item.name}`} style={prioritySummaryRow}>
                         <strong style={prioritySummaryName}>{item.name}</strong>
                         <span style={categoryBtnMeta}>{item.cat} - {item.source}</span>
