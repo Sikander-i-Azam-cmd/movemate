@@ -543,6 +543,21 @@ function App() {
     { name: "Gym Membership", cat: "Subscriptions", link: "https://www.google.com/search?q=gym+membership+change+address", reason: "Membership accounts can keep billing and notices tied to the old address." },
     { name: "Food Delivery Apps", cat: "Delivery Apps", link: "https://www.google.com/search?q=food+delivery+app+change+address", reason: "Delivery defaults can quietly keep pointing at the old home." },
   ];
+  const recommendedNextUpdateSuggestions = [
+    { name: "USPS Change of Address", cat: "Government / DMV", link: "https://moversguide.usps.com", reason: "Forward important mail while other account updates are still in progress." },
+    { name: "DMV / Driver License", cat: "Government / DMV", link: "https://www.usa.gov/motor-vehicle-services", reason: "License and vehicle records often require a separate address update.", aliases: ["DMV", "Driver License"] },
+    { name: "Voter Registration", cat: "Government / DMV", link: "https://vote.gov", reason: "Keep your registration current for your new address." },
+    { name: "IRS", cat: "Government / DMV", link: "https://www.irs.gov/forms-pubs/about-form-8822", reason: "Tax notices may still be mailed to your previous address." },
+    { name: "Employer Payroll / HR", cat: "Work / Payroll", link: "https://www.google.com/search?q=employer+payroll+change+address", reason: "Payroll, benefits, and tax forms should use your new address.", aliases: ["Employer Payroll", "Employer / Payroll", "HR"] },
+    { name: "Banks", cat: "Banks", link: "https://www.google.com/search?q=bank+mailing+address+change", reason: "Review statements, notices, checks, and card delivery addresses.", categoryWide: true },
+    { name: "Credit Cards", cat: "Credit Cards", link: "https://www.google.com/search?q=credit+card+billing+address+change", reason: "Billing addresses can affect statements and online checkout.", categoryWide: true },
+    { name: "Insurance", cat: "Insurance", link: "https://www.google.com/search?q=insurance+change+address", reason: "Coverage documents and premiums may depend on your location.", categoryWide: true },
+    { name: "Pharmacy", cat: "Healthcare", link: "https://www.google.com/search?q=pharmacy+change+address", reason: "Update prescription delivery and pharmacy contact details." },
+    { name: "Utilities", cat: "Utilities", link: "https://www.google.com/search?q=utilities+move+service+change+address", reason: "Confirm service, billing, and final bill addresses.", categoryWide: true },
+    { name: "Toll Tag", cat: "Government / DMV", link: "https://www.google.com/search?q=toll+tag+change+address", reason: "Toll accounts can keep vehicle notices tied to your old address." },
+    { name: "Pet Microchip", cat: "Healthcare", link: "https://www.google.com/search?q=pet+microchip+change+address", reason: "Current contact details help a lost pet get home safely." },
+    { name: "Subscriptions", cat: "Subscriptions", link: "https://www.google.com/search?q=subscription+change+address", reason: "Review memberships, deliveries, and billing details.", categoryWide: true },
+  ];
 
   const hasExistingMoveMateData = () =>
     localStorage.getItem("movemate-categories") ||
@@ -1241,6 +1256,23 @@ function App() {
     });
 
     return [...activeCategorySuggestions, ...priorityCatchUps].slice(0, 5);
+  };
+
+  const getRecommendedNextUpdates = () => {
+    const storedCompletions = getStoredServiceCompletions();
+
+    return recommendedNextUpdateSuggestions.filter(suggestion => {
+      const categoryItems = categories[suggestion.cat] || [];
+      if (suggestion.categoryWide && categoryItems.length > 0) return false;
+
+      const suggestionNames = [suggestion.name, ...(suggestion.aliases || [])].map(normalizeServiceName);
+      const isSelected = categoryItems.some(item =>
+        suggestionNames.includes(normalizeServiceName(item.text))
+      );
+      const isCompleted = suggestionNames.some(name => storedCompletions[name]?.completed);
+
+      return !isSelected && !isCompleted;
+    });
   };
 
   const progress = (() => {
@@ -2103,6 +2135,7 @@ function App() {
     const moveTimeline = getMoveTimeline();
     const readiness = getMoveReadiness();
     const priorityRecommendations = getPriorityRecommendations();
+    const recommendedNextUpdates = getRecommendedNextUpdates();
     const completedItems = selectedSummaryCategories.flatMap(cat => (
       (categories[cat] || [])
         .filter(item => getItemStatus(item) === "completed")
@@ -2230,6 +2263,31 @@ function App() {
               <div key={`${item.cat}-${item.id}`}>• {item.cat}: {item.text}</div>
             )) : <div>Nothing remaining</div>}
           </div>
+
+          {recommendedNextUpdates.length > 0 && (
+            <div style={forgottenCard}>
+              <div>
+                <div style={eyebrow}>Recommended Next Updates</div>
+                <strong style={forgottenTitle}>A few easy-to-miss places may still need your new address.</strong>
+              </div>
+              <div style={forgottenList}>
+                {recommendedNextUpdates.map(suggestion => (
+                  <div key={`${suggestion.cat}-${suggestion.name}`} style={forgottenSuggestion}>
+                    <span style={forgottenSuggestionText}>
+                      <strong style={serviceCardTitle}>{suggestion.name}</strong>
+                      <span style={serviceCardMeta}>{suggestion.cat} - {suggestion.reason}</span>
+                    </span>
+                    <button
+                      onClick={() => addSuggestedItem(suggestion.cat, suggestion.name, suggestion.link)}
+                      style={forgottenAddBtn}
+                    >
+                      Add to checklist
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div style={quickActionsGrid}>
             <button onClick={downloadChecklist} style={primaryBtn}>Download Summary / Checklist</button>
