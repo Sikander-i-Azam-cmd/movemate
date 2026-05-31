@@ -1275,6 +1275,65 @@ function App() {
     });
   };
 
+  const getMoveMatePlanPriority = (cat, serviceName) => {
+    const normalizedName = normalizeServiceName(serviceName);
+    const highPriorityNames = [
+      "usps change of address",
+      "dmv driver license",
+      "voter registration",
+      "irs",
+      "employer payroll hr",
+      "employer payroll",
+      "banks",
+      "credit cards",
+      "insurance",
+      "utilities",
+    ];
+    const streamingServices = ["netflix", "hulu", "disney", "max hbo", "spotify", "apple music", "youtube premium", "peacock", "paramount", "apple tv"];
+
+    if (highPriorityNames.includes(normalizedName) || ["Banks", "Credit Cards", "Insurance", "Utilities"].includes(cat)) {
+      return "high";
+    }
+
+    if (
+      normalizedName === "pet microchip" ||
+      normalizedName.includes("rewards") ||
+      streamingServices.includes(normalizedName)
+    ) {
+      return "low";
+    }
+
+    if (["Healthcare", "Delivery Apps", "Shopping / Ecommerce", "Subscriptions"].includes(cat)) {
+      return "medium";
+    }
+
+    return "low";
+  };
+
+  const getMoveMatePlan = () => {
+    const plan = { high: [], medium: [], low: [] };
+    const includedServices = new Set();
+    const addPlanItem = (item) => {
+      const normalizedName = normalizeServiceName(item.name);
+      if (!normalizedName || includedServices.has(normalizedName)) return;
+
+      includedServices.add(normalizedName);
+      plan[getMoveMatePlanPriority(item.cat, item.name)].push(item);
+    };
+
+    Object.entries(categories).forEach(([cat, items]) => {
+      items
+        .filter(item => getItemStatus(item) !== "completed")
+        .forEach(item => addPlanItem({ name: item.text, cat, source: "Selected" }));
+    });
+
+    getRecommendedNextUpdates().forEach(suggestion => {
+      addPlanItem({ name: suggestion.name, cat: suggestion.cat, source: "Recommended" });
+    });
+
+    return plan;
+  };
+
   const progress = (() => {
     const all = Object.values(categories).flat();
     const done = all.filter(i => getItemStatus(i) === "completed").length;
@@ -1328,21 +1387,44 @@ function App() {
         .filter(item => getItemStatus(item) !== "completed")
         .map(item => ({ ...item, cat }))
     ));
+    const recommendedNextUpdates = getRecommendedNextUpdates();
+    const moveMatePlan = getMoveMatePlan();
+    const formatServiceList = (items) => items.length
+      ? items.map(item => `- ${item.cat}: ${item.text || item.name}`).join("\n")
+      : "- None";
+    const formatPlanList = (items) => items.length
+      ? items.map(item => `- ${item.name} (${item.cat}, ${item.source})`).join("\n")
+      : "- None";
 
     let text = "MoveMate Summary\n\n";
+    text += "User profile\n";
+    text += `Name: ${savedName || "Not provided"}\n`;
+    text += `Email: ${email || "Not provided"}\n`;
+    text += `Phone: ${phone || "Not provided"}\n`;
+    text += `Move date: ${moveDate || "Not set"}\n`;
+    text += `New address: ${savedAddress || "Not provided"}\n\n`;
+
+    text += "Progress\n";
     text += `Overall progress: ${progress}%\n`;
     text += `Estimated time saved: ${estimatedTimeSaved} minutes\n`;
     text += `${summaryMode === "overall" ? "Categories included" : "Selected category"}: ${selectedSummaryCategories.join(", ")}\n\n`;
 
-    text += "Updated\n";
-    text += completedItems.length
-      ? completedItems.map(item => `- ${item.cat}: ${item.text}`).join("\n")
-      : "- None yet";
-    text += "\n\nNeeds attention\n";
-    text += remainingItems.length
-      ? remainingItems.map(item => `- ${item.cat}: ${item.text}`).join("\n")
-      : "- Nothing remaining";
-    text += "\n";
+    text += "Completed services\n";
+    text += `${formatServiceList(completedItems)}\n\n`;
+
+    text += "Remaining services\n";
+    text += `${formatServiceList(remainingItems)}\n\n`;
+
+    text += "Recommended next updates\n";
+    text += `${formatServiceList(recommendedNextUpdates)}\n\n`;
+
+    text += "Priority plan\n";
+    text += "High Priority\n";
+    text += `${formatPlanList(moveMatePlan.high)}\n\n`;
+    text += "Medium Priority\n";
+    text += `${formatPlanList(moveMatePlan.medium)}\n\n`;
+    text += "Low Priority\n";
+    text += `${formatPlanList(moveMatePlan.low)}\n`;
 
     return text;
   };
@@ -1352,7 +1434,7 @@ function App() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "movemate-checklist.txt";
+    a.download = "movemate-address-update-summary.txt";
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -2136,6 +2218,12 @@ function App() {
     const readiness = getMoveReadiness();
     const priorityRecommendations = getPriorityRecommendations();
     const recommendedNextUpdates = getRecommendedNextUpdates();
+    const moveMatePlan = getMoveMatePlan();
+    const moveMatePlanGroups = [
+      { key: "high", label: "High Priority" },
+      { key: "medium", label: "Medium Priority" },
+      { key: "low", label: "Low Priority" },
+    ];
     const completedItems = selectedSummaryCategories.flatMap(cat => (
       (categories[cat] || [])
         .filter(item => getItemStatus(item) === "completed")
@@ -2224,6 +2312,30 @@ function App() {
                   </div>
                 );
               })}
+            </div>
+          </div>
+
+          <div style={prioritySummaryCard}>
+            <div>
+              <div style={eyebrow}>Your MoveMate Plan</div>
+              <strong style={timelineTitle}>Remaining update order</strong>
+            </div>
+            <div style={moveMatePlanGroupList}>
+              {moveMatePlanGroups.map(group => (
+                <div key={group.key} style={moveMatePlanGroup}>
+                  <strong style={moveMatePlanGroupTitle}>{group.label}</strong>
+                  <div style={prioritySummaryList}>
+                    {moveMatePlan[group.key].length ? moveMatePlan[group.key].map(item => (
+                      <div key={`${group.key}-${item.cat}-${item.name}`} style={prioritySummaryRow}>
+                        <strong style={prioritySummaryName}>{item.name}</strong>
+                        <span style={categoryBtnMeta}>{item.cat} - {item.source}</span>
+                      </div>
+                    )) : (
+                      <span style={moveMatePlanEmpty}>Nothing remaining</span>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -2937,6 +3049,28 @@ const prioritySummaryName = {
   display: "block",
   color: "var(--text-h)",
   lineHeight: "135%",
+};
+
+const moveMatePlanGroupList = {
+  display: "grid",
+  gap: 16,
+};
+
+const moveMatePlanGroup = {
+  display: "grid",
+  gap: 10,
+};
+
+const moveMatePlanGroupTitle = {
+  color: "var(--text-h)",
+  fontSize: 14,
+  lineHeight: "135%",
+};
+
+const moveMatePlanEmpty = {
+  color: "var(--text)",
+  fontSize: 13,
+  fontWeight: 700,
 };
 
 const input = {
