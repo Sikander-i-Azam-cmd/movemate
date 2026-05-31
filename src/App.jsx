@@ -60,7 +60,7 @@ function App() {
   // ---------------- UPDATED MASTER LISTS ----------------
   const masterLists = {
     Banks: [
-      { name: "Chase", link: "https://www.chase.com" },
+      { name: "Chase", link: "https://www.chase.com", moveInstructions: ["Sign in to Chase.", "Open Profile & Settings.", "Update your mailing address.", "Verify card replacement and statement preferences."] },
       { name: "Bank of America", link: "https://www.bankofamerica.com" },
       { name: "Wells Fargo", link: "https://www.wellsfargo.com" },
       { name: "Citibank", link: "https://www.citi.com" },
@@ -90,7 +90,7 @@ function App() {
 
     "Credit Cards": [
       { name: "Capital One", link: "https://www.capitalone.com" },
-      { name: "American Express", link: "https://www.americanexpress.com" },
+      { name: "American Express", link: "https://www.americanexpress.com", moveInstructions: ["Sign in to American Express.", "Open Account Services or Profile.", "Update your billing and mailing address.", "Confirm the change for each card if prompted."] },
       { name: "Chase Credit Cards", link: "https://creditcards.chase.com" },
       { name: "Citi Cards", link: "https://www.citi.com/credit-cards" },
       { name: "Discover", link: "https://www.discover.com" },
@@ -118,7 +118,7 @@ function App() {
     Insurance: [
       { name: "State Farm", link: "https://www.statefarm.com" },
       { name: "GEICO", link: "https://www.geico.com" },
-      { name: "Progressive", link: "https://www.progressive.com" },
+      { name: "Progressive", link: "https://www.progressive.com", moveInstructions: ["Sign in to Progressive.", "Open your policy details.", "Update your garaging and mailing address.", "Review any policy or premium changes before saving."] },
       { name: "Allstate", link: "https://www.allstate.com" },
       { name: "Liberty Mutual", link: "https://www.libertymutual.com" },
       { name: "Farmers Insurance", link: "https://www.farmers.com" },
@@ -147,7 +147,7 @@ function App() {
       { name: "Gas Provider", link: "https://www.google.com/search?q=gas+provider+change+address" },
       { name: "Water Utility", link: "https://www.google.com/search?q=water+utility+change+address" },
       { name: "Trash / Recycling Service", link: "https://www.google.com/search?q=trash+recycling+service+change+address" },
-      { name: "TXU Energy", link: "https://www.txu.com" },
+      { name: "TXU Energy", link: "https://www.txu.com", moveInstructions: ["Sign in to your TXU Energy account.", "Open account or move service settings.", "Update service and billing addresses.", "Confirm your effective move date."] },
       { name: "Reliant Energy", link: "https://www.reliant.com" },
       { name: "Atmos Energy", link: "https://www.atmosenergy.com" },
       { name: "Oncor", link: "https://www.oncor.com" },
@@ -178,7 +178,7 @@ function App() {
     ],
 
     "Delivery Apps": [
-      { name: "DoorDash", link: "https://www.doordash.com" },
+      { name: "DoorDash", link: "https://www.doordash.com", moveInstructions: ["Sign in to DoorDash.", "Open saved addresses.", "Add your new delivery address.", "Set it as the default and remove the old address if needed."] },
       { name: "Uber Eats", link: "https://www.ubereats.com" },
       { name: "Grubhub", link: "https://www.grubhub.com" },
       { name: "Instacart", link: "https://www.instacart.com" },
@@ -203,7 +203,7 @@ function App() {
     ],
 
     Subscriptions: [
-      { name: "Netflix", link: "https://www.netflix.com" },
+      { name: "Netflix", link: "https://www.netflix.com", moveInstructions: ["Sign in to Netflix.", "Open Account Settings.", "Verify your billing address if applicable."] },
       { name: "Spotify", link: "https://www.spotify.com" },
       { name: "Hulu", link: "https://www.hulu.com" },
       { name: "Disney+", link: "https://www.disneyplus.com" },
@@ -231,7 +231,7 @@ function App() {
     ],
 
     "Shopping / Ecommerce": [
-      { name: "Amazon", link: "https://www.amazon.com" },
+      { name: "Amazon", link: "https://www.amazon.com", moveInstructions: ["Sign in to Amazon.", "Go to Your Addresses.", "Update your default shipping address.", "Verify payment methods and billing addresses."] },
       { name: "Walmart", link: "https://www.walmart.com" },
       { name: "Target", link: "https://www.target.com" },
       { name: "eBay", link: "https://www.ebay.com" },
@@ -260,7 +260,7 @@ function App() {
 
     "Government / DMV": [
       { name: "DMV", link: "https://www.usa.gov/motor-vehicle-services" },
-      { name: "USPS Change of Address", link: "https://moversguide.usps.com" },
+      { name: "USPS Change of Address", link: "https://moversguide.usps.com", moveInstructions: ["Open the USPS Change of Address page.", "Verify your identity.", "Enter your old and new addresses.", "Submit your forwarding request and save the confirmation."] },
       { name: "IRS", link: "https://www.irs.gov/forms-pubs/about-form-8822" },
       { name: "Voter Registration", link: "https://vote.gov" },
       { name: "Social Security Administration", link: "https://www.ssa.gov" },
@@ -288,7 +288,7 @@ function App() {
       { name: "Dentist", link: "https://www.google.com/search?q=dentist+change+address" },
       { name: "Vision Provider", link: "https://www.google.com/search?q=vision+provider+change+address" },
       { name: "Pharmacy", link: "https://www.google.com/search?q=pharmacy+change+address" },
-      { name: "CVS", link: "https://www.cvs.com" },
+      { name: "CVS", link: "https://www.cvs.com", moveInstructions: ["Sign in to CVS.", "Open your account profile.", "Update your contact and mailing address.", "Review pharmacy and delivery preferences if applicable."] },
       { name: "Walgreens", link: "https://www.walgreens.com" },
       { name: "Kaiser Permanente", link: "https://healthy.kaiserpermanente.org" },
       { name: "UnitedHealthcare", link: "https://www.uhc.com" },
@@ -313,7 +313,7 @@ function App() {
 
     "Work / Payroll": [
       { name: "Employer Payroll", link: "https://www.google.com/search?q=employer+payroll+change+address" },
-      { name: "ADP", link: "https://www.adp.com" },
+      { name: "ADP", link: "https://www.adp.com", moveInstructions: ["Sign in to ADP.", "Open your profile or personal information.", "Update your home and mailing address.", "Confirm payroll and tax form delivery details."] },
       { name: "Workday", link: "https://www.workday.com" },
       { name: "Paychex", link: "https://www.paychex.com" },
       { name: "Gusto", link: "https://gusto.com" },
@@ -436,6 +436,13 @@ function App() {
     });
   };
 
+  const findMasterListService = (cat, serviceName) => {
+    const normalizedName = normalizeServiceName(serviceName);
+    return (masterLists[cat] || []).find(service =>
+      normalizeServiceName(service.name) === normalizedName
+    );
+  };
+
   const getDestinationActions = (destination, fallbackUrl) => {
     const normalizeDestinationUrl = (url = "") => url.replace(/\/+$/, "");
 
@@ -451,6 +458,35 @@ function App() {
     );
 
     return uniqueDestinations;
+  };
+
+  const serviceCompletionStorageKey = "movemate-service-completions";
+
+  const getStoredServiceCompletions = () => {
+    try {
+      return JSON.parse(localStorage.getItem(serviceCompletionStorageKey) || "{}");
+    } catch {
+      return {};
+    }
+  };
+
+  const saveServiceCompletion = (serviceName, isCompleted) => {
+    if (!serviceName) return;
+
+    const storedCompletions = getStoredServiceCompletions();
+    const normalizedName = normalizeServiceName(serviceName);
+
+    if (isCompleted) {
+      storedCompletions[normalizedName] = {
+        name: serviceName,
+        completed: true,
+        completedAt: new Date().toISOString(),
+      };
+    } else {
+      delete storedCompletions[normalizedName];
+    }
+
+    localStorage.setItem(serviceCompletionStorageKey, JSON.stringify(storedCompletions));
   };
 
   const normalizeItem = ({ completed, ...item }) => ({
@@ -929,6 +965,7 @@ function App() {
     localStorage.removeItem("movemate-current-view");
     localStorage.removeItem("movemate-active-category");
     localStorage.removeItem("movemate-selected-item");
+    localStorage.removeItem(serviceCompletionStorageKey);
 
     setFirstName("");
     setLastName("");
@@ -1097,6 +1134,9 @@ function App() {
   };
 
   const updateItemStatus = (cat, id, status) => {
+    const item = categories[cat].find(i => i.id === id);
+    if (item) saveServiceCompletion(item.text, status === "completed");
+
     setCategories({
       ...categories,
       [cat]: categories[cat].map(i =>
@@ -1106,6 +1146,9 @@ function App() {
   };
 
   const deleteItem = (cat, id) => {
+    const item = categories[cat].find(i => i.id === id);
+    if (item) saveServiceCompletion(item.text, false);
+
     setCategories({
       ...categories,
       [cat]: categories[cat].filter(i => i.id !== id),
@@ -1703,6 +1746,8 @@ function App() {
     const taskGuidance = getTaskGuidance(activeCategory, selectedItem.text);
     const requiredInfo = getRequiredInfoChecklist();
     const selectedDestination = findServiceDestination(activeCategory, selectedItem.text);
+    const selectedMasterListService = findMasterListService(activeCategory, selectedItem.text);
+    const moveInstructions = selectedMasterListService?.moveInstructions || [];
     const destinationActions = getDestinationActions(selectedDestination, selectedItem.link);
     const primaryDestinationUrl = destinationActions[0]?.url || selectedItem.link;
     const canCompleteTask = selectedStatus === "completed" || Object.values(completionChecks).every(Boolean);
@@ -1769,6 +1814,21 @@ function App() {
               ))}
             </div>
           </div>
+
+          {moveInstructions.length > 0 && (
+            <div style={guidanceCard}>
+              <div style={eyebrow}>{selectedItem.text} move checklist</div>
+              <strong style={guidanceTitle}>Service-specific steps</strong>
+              <div style={serviceInstructionList}>
+                {moveInstructions.map(instruction => (
+                  <div key={instruction} style={serviceInstructionItem}>
+                    <span style={serviceInstructionCheck}>✓</span>
+                    <span>{instruction}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div style={guidanceCard}>
             <div style={eyebrow}>Information you may need</div>
@@ -2110,12 +2170,27 @@ function App() {
               <strong style={summaryProgressValue}>{progress}% complete</strong>
             </div>
             <div style={summaryProgressMeta}>
-              <span>{completedItems.length} completed</span>
-              <span>{remainingItems.length} remaining</span>
+              <span>Completed Services: {completedItems.length}</span>
+              <span>Remaining Services: {remainingItems.length}</span>
               <span>{estimatedTimeSaved} minutes saved</span>
             </div>
             <div style={readinessTrack}>
               <div style={{ ...readinessFill, width: `${progress}%` }} />
+            </div>
+          </div>
+
+          <div style={prioritySummaryCard}>
+            <div style={eyebrow}>Category progress</div>
+            <div style={prioritySummaryList}>
+              {selectedSummaryCategories.map(cat => {
+                const { done, total } = getCategoryProgress(cat);
+                return (
+                  <div key={cat} style={prioritySummaryRow}>
+                    <strong style={prioritySummaryName}>{cat}</strong>
+                    <span style={categoryBtnMeta}>{done}/{total} complete</span>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
@@ -2129,11 +2204,11 @@ function App() {
               <strong style={summaryStatValue}>{progress}%</strong>
             </div>
             <div style={summaryStat}>
-              <span style={infoLabel}>Items completed</span>
+              <span style={infoLabel}>Completed services</span>
               <strong style={summaryStatValue}>{completedItems.length}</strong>
             </div>
             <div style={summaryStat}>
-              <span style={infoLabel}>Items remaining</span>
+              <span style={infoLabel}>Remaining services</span>
               <strong style={summaryStatValue}>{remainingItems.length}</strong>
             </div>
             <div style={summaryStatWide}>
@@ -2143,14 +2218,14 @@ function App() {
           </div>
 
           <div style={summaryGroup}>
-            <strong>What you updated</strong>
+            <strong>Completed services</strong>
             {completedItems.length ? completedItems.map(item => (
               <div key={`${item.cat}-${item.id}`}>✓ {item.cat}: {item.text}</div>
             )) : <div>None yet</div>}
           </div>
 
           <div style={summaryGroup}>
-            <strong>Still needs attention</strong>
+            <strong>Remaining selected services</strong>
             {remainingItems.length ? remainingItems.map(item => (
               <div key={`${item.cat}-${item.id}`}>• {item.cat}: {item.text}</div>
             )) : <div>Nothing remaining</div>}
@@ -3351,6 +3426,36 @@ const guidanceNumber = {
   borderRadius: 999,
   background: "var(--accent-bg)",
   color: "var(--accent-strong)",
+  fontSize: 12,
+  fontWeight: 900,
+};
+
+const serviceInstructionList = {
+  display: "grid",
+  gap: 10,
+};
+
+const serviceInstructionItem = {
+  display: "grid",
+  gridTemplateColumns: "22px 1fr",
+  gap: 10,
+  alignItems: "flex-start",
+  color: "var(--text-h)",
+  fontSize: 14,
+  fontWeight: 700,
+  lineHeight: "145%",
+};
+
+const serviceInstructionCheck = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: 18,
+  height: 18,
+  border: "1px solid var(--success-border)",
+  borderRadius: 6,
+  background: "var(--success-bg)",
+  color: "#15803d",
   fontSize: 12,
   fontWeight: 900,
 };
