@@ -30,6 +30,10 @@ function App() {
   const [zip, setZip] = useState(() => localStorage.getItem("mm-zip") || "");
   const [country, setCountry] = useState(() => localStorage.getItem("mm-country") || "");
   const [moveDate, setMoveDate] = useState(() => localStorage.getItem("mm-move-date") || localStorage.getItem("movemate-move-date") || "");
+  const [housingStatus, setHousingStatus] = useState(() => localStorage.getItem("mm-housing-status") || "");
+  const [moveScope, setMoveScope] = useState(() => localStorage.getItem("mm-move-scope") || "");
+  const [hasCar, setHasCar] = useState(() => localStorage.getItem("mm-has-car") || "");
+  const [hasPets, setHasPets] = useState(() => localStorage.getItem("mm-has-pets") || "");
 
   useEffect(() => localStorage.setItem("mm-first", firstName), [firstName]);
   useEffect(() => localStorage.setItem("mm-last", lastName), [lastName]);
@@ -43,6 +47,10 @@ function App() {
   useEffect(() => localStorage.setItem("mm-zip", zip), [zip]);
   useEffect(() => localStorage.setItem("mm-country", country), [country]);
   useEffect(() => localStorage.setItem("mm-move-date", moveDate), [moveDate]);
+  useEffect(() => localStorage.setItem("mm-housing-status", housingStatus), [housingStatus]);
+  useEffect(() => localStorage.setItem("mm-move-scope", moveScope), [moveScope]);
+  useEffect(() => localStorage.setItem("mm-has-car", hasCar), [hasCar]);
+  useEffect(() => localStorage.setItem("mm-has-pets", hasPets), [hasPets]);
 
   // ---------------- DATA ----------------
   const defaultCategories = {
@@ -559,6 +567,58 @@ function App() {
     { name: "Pet Microchip", cat: "Healthcare", link: "https://www.google.com/search?q=pet+microchip+change+address", reason: "Current contact details help a lost pet get home safely." },
     { name: "Subscriptions", cat: "Subscriptions", link: "https://www.google.com/search?q=subscription+change+address", reason: "Review memberships, deliveries, and billing details.", categoryWide: true },
   ];
+  const profilePersonalizationQuestions = [
+    {
+      label: "Are you renting or buying?",
+      value: housingStatus,
+      setValue: setHousingStatus,
+      options: [
+        { value: "renting", label: "Renting" },
+        { value: "buying", label: "Buying" },
+        { value: "other", label: "Other" },
+      ],
+    },
+    {
+      label: "Are you moving in-state or out-of-state?",
+      value: moveScope,
+      setValue: setMoveScope,
+      options: [
+        { value: "in_state", label: "In-state" },
+        { value: "out_of_state", label: "Out-of-state" },
+      ],
+    },
+    {
+      label: "Do you have a car?",
+      value: hasCar,
+      setValue: setHasCar,
+      options: [
+        { value: "yes", label: "Yes" },
+        { value: "no", label: "No" },
+      ],
+    },
+    {
+      label: "Do you have pets?",
+      value: hasPets,
+      setValue: setHasPets,
+      options: [
+        { value: "yes", label: "Yes" },
+        { value: "no", label: "No" },
+      ],
+    },
+  ];
+  const getProfileChoiceLabel = (value) => {
+    const labels = {
+      renting: "Renting",
+      buying: "Buying",
+      other: "Other",
+      in_state: "In-state",
+      out_of_state: "Out-of-state",
+      yes: "Yes",
+      no: "No",
+    };
+
+    return labels[value] || "Not set";
+  };
 
   const hasExistingMoveMateData = () =>
     localStorage.getItem("movemate-categories") ||
@@ -566,7 +626,11 @@ function App() {
     localStorage.getItem("mm-last") ||
     localStorage.getItem("mm-email") ||
     localStorage.getItem("mm-phone") ||
-    localStorage.getItem("mm-street");
+    localStorage.getItem("mm-street") ||
+    localStorage.getItem("mm-housing-status") ||
+    localStorage.getItem("mm-move-scope") ||
+    localStorage.getItem("mm-has-car") ||
+    localStorage.getItem("mm-has-pets");
 
   const [categories, setCategories] = useState(() => {
     const savedCategories = localStorage.getItem("movemate-categories");
@@ -970,6 +1034,10 @@ function App() {
       "mm-zip",
       "mm-country",
       "mm-move-date",
+      "mm-housing-status",
+      "mm-move-scope",
+      "mm-has-car",
+      "mm-has-pets",
     ];
 
     profileKeys.forEach(key => localStorage.removeItem(key));
@@ -994,6 +1062,10 @@ function App() {
     setZip("");
     setCountry("");
     setMoveDate("");
+    setHousingStatus("");
+    setMoveScope("");
+    setHasCar("");
+    setHasPets("");
     setCategories(defaultCategories);
     setSelectedOnboardingCategories(onboardingCategoryOptions.map(option => option.key));
     setOnboardingStep(0);
@@ -1063,6 +1135,10 @@ function App() {
     setZip(localStorage.getItem("mm-zip") || "");
     setCountry(localStorage.getItem("mm-country") || "");
     setMoveDate(localStorage.getItem("mm-move-date") || localStorage.getItem("movemate-move-date") || "");
+    setHousingStatus(localStorage.getItem("mm-housing-status") || "");
+    setMoveScope(localStorage.getItem("mm-move-scope") || "");
+    setHasCar(localStorage.getItem("mm-has-car") || "");
+    setHasPets(localStorage.getItem("mm-has-pets") || "");
     setOnboardingStep(Number.isInteger(savedStep) && savedStep >= 0 && savedStep < onboardingSteps.length ? savedStep : onboardingSteps.length - 1);
     setHasCompletedOnboarding(true);
     setCurrentView(savedCategories ? "categories" : "profile");
@@ -1295,10 +1371,67 @@ function App() {
     return [...activeCategorySuggestions, ...priorityCatchUps].slice(0, 5);
   };
 
+  const getPersonalizedRecommendationSuggestions = () => {
+    const suggestions = [];
+
+    if (moveScope === "out_of_state") {
+      suggestions.push(
+        { name: "DMV / Driver License", cat: "Government / DMV", link: "https://www.usa.gov/motor-vehicle-services", reason: "An out-of-state move usually requires updating your license and vehicle records.", aliases: ["DMV", "Driver License"] },
+        { name: "Voter Registration", cat: "Government / DMV", link: "https://vote.gov", reason: "An out-of-state move changes the registration address used for elections." },
+        { name: "Insurance", cat: "Insurance", link: "https://www.google.com/search?q=insurance+change+address", reason: "Review coverage and policy details when moving to a new state.", categoryWide: true },
+        { name: "Banks", cat: "Banks", link: "https://www.google.com/search?q=bank+mailing+address+change", reason: "Keep financial notices and card delivery details current after an out-of-state move.", categoryWide: true },
+        { name: "Employer Payroll / HR", cat: "Work / Payroll", link: "https://www.google.com/search?q=employer+payroll+change+address", reason: "Your employer may need your new state for payroll, tax forms, and benefits.", aliases: ["Employer Payroll", "Employer / Payroll", "HR"] },
+      );
+    }
+
+    if (housingStatus === "renting") {
+      suggestions.push(
+        { name: "Renters Insurance", cat: "Insurance", link: "https://www.google.com/search?q=renters+insurance+change+address", reason: "Make sure your renters policy reflects the new home." },
+        { name: "Utilities", cat: "Utilities", link: "https://www.google.com/search?q=utilities+move+service+change+address", reason: "Confirm service start dates, billing, and final bills for your rental.", categoryWide: true },
+        { name: "USPS Change of Address", cat: "Government / DMV", link: "https://moversguide.usps.com", reason: "Forward important mail while your rental move is still in progress." },
+      );
+    }
+
+    if (housingStatus === "buying") {
+      suggestions.push(
+        { name: "Homeowners Insurance", cat: "Insurance", link: "https://www.google.com/search?q=homeowners+insurance+change+address", reason: "Confirm homeowners coverage and policy mail for the new property." },
+        { name: "Utilities", cat: "Utilities", link: "https://www.google.com/search?q=utilities+move+service+change+address", reason: "Confirm service start dates and billing details for the new property.", categoryWide: true },
+        { name: "Mortgage / Lender", cat: "Banks", link: "https://www.google.com/search?q=mortgage+lender+change+address", reason: "Review lender correspondence and payment details for your new home." },
+      );
+    }
+
+    if (hasCar === "yes") {
+      suggestions.push(
+        { name: "DMV / Driver License", cat: "Government / DMV", link: "https://www.usa.gov/motor-vehicle-services", reason: "Update your driver license and vehicle records for the new address.", aliases: ["DMV", "Driver License"] },
+        { name: "Vehicle Registration", cat: "Government / DMV", link: "https://www.usa.gov/motor-vehicle-services", reason: "Registration notices may not follow your license address automatically." },
+        { name: "Toll Tag", cat: "Government / DMV", link: "https://www.google.com/search?q=toll+tag+change+address", reason: "Toll accounts can keep vehicle notices tied to your old address." },
+        { name: "Car Insurance", cat: "Insurance", link: "https://www.google.com/search?q=car+insurance+change+address", reason: "Auto coverage and rates may depend on the new garaging address." },
+      );
+    }
+
+    if (hasPets === "yes") {
+      suggestions.push(
+        { name: "Pet Microchip", cat: "Healthcare", link: "https://www.google.com/search?q=pet+microchip+change+address", reason: "Current contact details help a lost pet get home safely." },
+        { name: "Vet", cat: "Healthcare", link: "https://www.google.com/search?q=veterinarian+change+address", reason: "Keep your pet's veterinary records and contact details current." },
+        { name: "Pet Insurance", cat: "Insurance", link: "https://www.google.com/search?q=pet+insurance+change+address", reason: "Update policy contact details and confirm coverage for the new location." },
+      );
+    }
+
+    return suggestions;
+  };
+
   const getRecommendedNextUpdates = () => {
     const storedCompletions = getStoredServiceCompletions();
+    const includedSuggestions = new Set();
+    const suggestions = [
+      ...getPersonalizedRecommendationSuggestions(),
+      ...recommendedNextUpdateSuggestions,
+    ];
 
-    return recommendedNextUpdateSuggestions.filter(suggestion => {
+    return suggestions.filter(suggestion => {
+      const normalizedSuggestionName = normalizeServiceName(suggestion.name);
+      if (includedSuggestions.has(normalizedSuggestionName)) return false;
+
       const categoryItems = categories[suggestion.cat] || [];
       if (suggestion.categoryWide && categoryItems.length > 0) return false;
 
@@ -1308,7 +1441,10 @@ function App() {
       );
       const isCompleted = suggestionNames.some(name => storedCompletions[name]?.completed);
 
-      return !isSelected && !isCompleted;
+      if (isSelected || isCompleted) return false;
+
+      includedSuggestions.add(normalizedSuggestionName);
+      return true;
     });
   };
 
@@ -1511,6 +1647,10 @@ function App() {
     phone && `Phone: ${phone}`,
     savedAddress && `Address: ${savedAddress}`,
     moveDate && `Move date: ${moveDate}`,
+    housingStatus && `Housing: ${getProfileChoiceLabel(housingStatus)}`,
+    moveScope && `Move type: ${getProfileChoiceLabel(moveScope)}`,
+    hasCar && `Has car: ${getProfileChoiceLabel(hasCar)}`,
+    hasPets && `Has pets: ${getProfileChoiceLabel(hasPets)}`,
   ].filter(Boolean).join("\n");
   const extensionProfileJson = JSON.stringify({
     firstName,
@@ -1523,6 +1663,10 @@ function App() {
     state,
     zip,
     country,
+    housingStatus,
+    moveScope,
+    hasCar,
+    hasPets,
   }, null, 2);
 
   const copyText = (key, text) => {
@@ -1564,6 +1708,12 @@ function App() {
     text += `Phone: ${phone || "Not provided"}\n`;
     text += `Move date: ${moveDate || "Not set"}\n`;
     text += `New address: ${savedAddress || "Not provided"}\n\n`;
+
+    text += "Move personalization\n";
+    text += `Housing: ${getProfileChoiceLabel(housingStatus)}\n`;
+    text += `Move type: ${getProfileChoiceLabel(moveScope)}\n`;
+    text += `Has car: ${getProfileChoiceLabel(hasCar)}\n`;
+    text += `Has pets: ${getProfileChoiceLabel(hasPets)}\n\n`;
 
     text += "Progress\n";
     text += `MoveMate Readiness Score: ${progress}%\n`;
@@ -1878,6 +2028,22 @@ function App() {
                 <span style={infoLabel}>Move date</span>
                 <strong style={profileValue}>{moveDate || "Not set"}</strong>
               </div>
+              <div style={profileItem}>
+                <span style={infoLabel}>Housing</span>
+                <strong style={profileValue}>{getProfileChoiceLabel(housingStatus)}</strong>
+              </div>
+              <div style={profileItem}>
+                <span style={infoLabel}>Move type</span>
+                <strong style={profileValue}>{getProfileChoiceLabel(moveScope)}</strong>
+              </div>
+              <div style={profileItem}>
+                <span style={infoLabel}>Has car</span>
+                <strong style={profileValue}>{getProfileChoiceLabel(hasCar)}</strong>
+              </div>
+              <div style={profileItem}>
+                <span style={infoLabel}>Has pets</span>
+                <strong style={profileValue}>{getProfileChoiceLabel(hasPets)}</strong>
+              </div>
               <div style={profileItemWide}>
                 <span style={infoLabel}>Full address</span>
                 <strong style={profileValue}>{savedAddress}</strong>
@@ -1947,6 +2113,30 @@ function App() {
               </div>
             </div>
           )}
+
+          <div style={profilePersonalizationCard}>
+            <div>
+              <div style={eyebrow}>Optional move details</div>
+              <strong style={profilePersonalizationTitle}>Personalize your checklist</strong>
+            </div>
+            {profilePersonalizationQuestions.map(question => (
+              <div key={question.label} style={profileQuestion}>
+                <span style={infoLabel}>{question.label}</span>
+                <div style={profileChoiceGroup}>
+                  {question.options.map(option => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => question.setValue(option.value)}
+                      style={question.value === option.value ? profileChoiceBtnSelected : profileChoiceBtn}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
         <button onClick={openChecklist} style={primaryBtn}>
@@ -4201,6 +4391,54 @@ const profileValue = {
 
 const profileForm = {
   paddingTop: 4,
+};
+
+const profilePersonalizationCard = {
+  display: "grid",
+  gap: 16,
+  marginTop: 8,
+  padding: 16,
+  border: "1px solid var(--border)",
+  borderRadius: 12,
+  background: "var(--surface)",
+  boxShadow: "var(--shadow-subtle)",
+};
+
+const profilePersonalizationTitle = {
+  display: "block",
+  marginTop: 4,
+  color: "var(--text-h)",
+  lineHeight: "135%",
+};
+
+const profileQuestion = {
+  display: "grid",
+  gap: 8,
+};
+
+const profileChoiceGroup = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: 8,
+};
+
+const profileChoiceBtn = {
+  padding: "8px 10px",
+  border: "1px solid var(--border)",
+  borderRadius: 10,
+  background: "var(--secondary-bg)",
+  color: "var(--text-h)",
+  font: "inherit",
+  fontSize: 13,
+  fontWeight: 700,
+  cursor: "pointer",
+};
+
+const profileChoiceBtnSelected = {
+  ...profileChoiceBtn,
+  borderColor: "var(--accent-border)",
+  background: "var(--accent-bg)",
+  color: "var(--accent-strong)",
 };
 
 const quickCopySection = {
