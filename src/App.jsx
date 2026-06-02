@@ -10,6 +10,7 @@ function App() {
   const [summaryMode, setSummaryMode] = useState("selected");
   const [sessionMessage, setSessionMessage] = useState("");
   const [feedbackMessage, setFeedbackMessage] = useState("");
+  const [taskCompletionMessage, setTaskCompletionMessage] = useState("");
   const [completionChecks, setCompletionChecks] = useState({
     mailing: false,
     secondaryAddress: false,
@@ -1003,6 +1004,7 @@ function App() {
     setSearch("");
     setCopiedKey("");
     setIsEditingProfile(false);
+    setTaskCompletionMessage("");
     setCompletionChecks({
       mailing: false,
       secondaryAddress: false,
@@ -1117,6 +1119,7 @@ function App() {
 
   const openTask = (cat, item) => {
     const isCompleted = getItemStatus(item) === "completed";
+    setTaskCompletionMessage("");
     setActiveCategory(cat);
     setSelectedItemId(item.id);
     setCompletionChecks({
@@ -1130,6 +1133,28 @@ function App() {
     }
   };
 
+  const startNextBestAction = (action) => {
+    if (!action) return;
+
+    if (action.selectedItem) {
+      openTask(action.cat, action.selectedItem);
+      return;
+    }
+
+    if (!categories[action.cat]) {
+      setCategories(currentCategories => ({
+        ...currentCategories,
+        [action.cat]: [],
+      }));
+    }
+
+    setSelectedFlowCategories([action.cat]);
+    setActiveCategory(action.cat);
+    setSelectedItemId(null);
+    setSearch("");
+    setCurrentView("category");
+  };
+
   const continueToSelectedTask = () => {
     if (!activeCategory || !categories[activeCategory] || !selectedItemId) return;
     const selectedItem = categories[activeCategory].find(item => item.id === selectedItemId);
@@ -1141,6 +1166,18 @@ function App() {
     if (!activeCategory || !selectedItemId) return;
     if (!Object.values(completionChecks).every(Boolean)) return;
     updateItemStatus(activeCategory, selectedItemId, "completed");
+    setTaskCompletionMessage("Completed! MoveMate updated your progress.");
+  };
+
+  const continueToNextBestAction = () => {
+    const nextAction = getNextBestAction();
+
+    if (!nextAction) {
+      setTaskCompletionMessage("You're all caught up.");
+      return;
+    }
+
+    startNextBestAction(nextAction);
   };
 
   const openUpdatePage = (link) => {
@@ -1328,7 +1365,7 @@ function App() {
     });
 
     getRecommendedNextUpdates().forEach(suggestion => {
-      addPlanItem({ name: suggestion.name, cat: suggestion.cat, source: "Recommended" });
+      addPlanItem({ name: suggestion.name, cat: suggestion.cat, source: "Recommended", reason: suggestion.reason });
     });
 
     return plan;
@@ -1367,6 +1404,35 @@ function App() {
     return timing;
   };
 
+  const getMoveTimelinePlan = () => {
+    const timing = getMoveMateTiming();
+    const isEarlyMoveTask = (item) => {
+      const normalizedName = normalizeServiceName(item.name);
+      return normalizedName.includes("usps") || ["Utilities", "Insurance"].includes(item.cat);
+    };
+
+    return {
+      thirtyPlusDays: timing.beforeMove.filter(isEarlyMoveTask),
+      fourteenDays: timing.beforeMove.filter(item => !isEarlyMoveTask(item)),
+      moveWeek: timing.moveWeek,
+      afterMove: timing.afterMove,
+    };
+  };
+
+  const getMoveTimelineBucketLabel = (label, offsetDays, prefix) => {
+    if (!moveDate) return label;
+
+    const targetDate = new Date(`${moveDate}T00:00:00`);
+    targetDate.setDate(targetDate.getDate() + offsetDays);
+    const formattedDate = targetDate.toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+
+    return `${label} - ${prefix} ${formattedDate}`;
+  };
+
   const getRemainingServiceTimeEstimate = (cat, serviceName) => {
     const normalizedName = normalizeServiceName(serviceName);
     const categoryEstimates = {
@@ -1383,6 +1449,41 @@ function App() {
     if (normalizedName.includes("usps")) return 5;
     if (normalizedName === "dmv" || normalizedName.includes("driver license")) return 10;
     return categoryEstimates[cat] || 1;
+  };
+
+  const getNextBestAction = () => {
+    const plan = getMoveMatePlan();
+    const timeline = getMoveTimelinePlan();
+    const recommendations = getRecommendedNextUpdates().map(item => ({ ...item, source: "Recommended" }));
+    const remainingSelectedItems = Object.entries(categories).flatMap(([cat, items]) => (
+      items
+        .filter(item => getItemStatus(item) !== "completed")
+        .map(item => ({ name: item.text, cat, source: "Selected" }))
+    ));
+    const candidates = [
+      ...plan.high,
+      ...timeline.thirtyPlusDays,
+      ...timeline.fourteenDays,
+      ...timeline.moveWeek,
+      ...timeline.afterMove,
+      ...recommendations,
+      ...remainingSelectedItems,
+    ];
+
+    const candidate = candidates[0];
+    if (!candidate) return null;
+
+    const selectedItem = (categories[candidate.cat] || []).find(item =>
+      getItemStatus(item) !== "completed" &&
+      normalizeServiceName(item.text) === normalizeServiceName(candidate.name)
+    );
+
+    return {
+      ...candidate,
+      selectedItem,
+      estimatedTime: getRemainingServiceTimeEstimate(candidate.cat, candidate.name),
+      reason: candidate.reason || getHelperText(candidate.cat, candidate.name),
+    };
   };
 
   const trackedServices = Object.values(categories).flat();
@@ -1447,6 +1548,8 @@ function App() {
     const recommendedNextUpdates = getRecommendedNextUpdates();
     const moveMatePlan = getMoveMatePlan();
     const moveMateTiming = getMoveMateTiming();
+    const moveTimelinePlan = getMoveTimelinePlan();
+    const nextBestAction = getNextBestAction();
     const formatServiceList = (items) => items.length
       ? items.map(item => `- ${item.cat}: ${item.text || item.name}`).join("\n")
       : "- None";
@@ -1469,6 +1572,16 @@ function App() {
     text += `Estimated Time Remaining: ${estimatedTimeRemaining} minutes\n`;
     text += `Estimated time saved: ${estimatedTimeSaved} minutes\n`;
     text += `${summaryMode === "overall" ? "Categories included" : "Selected category"}: ${selectedSummaryCategories.join(", ")}\n\n`;
+
+    text += "Next Best Action\n";
+    if (nextBestAction) {
+      text += `Service: ${nextBestAction.name}\n`;
+      text += `Category: ${nextBestAction.cat}\n`;
+      text += `Estimated time: ${nextBestAction.estimatedTime} minutes\n`;
+      text += `Why it matters: ${nextBestAction.reason}\n\n`;
+    } else {
+      text += "You're all caught up.\n\n";
+    }
 
     text += "Completed services\n";
     text += `${formatServiceList(completedItems)}\n\n`;
@@ -1493,7 +1606,17 @@ function App() {
     text += "Move Week\n";
     text += `${formatPlanList(moveMateTiming.moveWeek)}\n\n`;
     text += "After Move\n";
-    text += `${formatPlanList(moveMateTiming.afterMove)}\n`;
+    text += `${formatPlanList(moveMateTiming.afterMove)}\n\n`;
+
+    text += "Your Move Timeline\n";
+    text += `${getMoveTimelineBucketLabel("30+ Days Before Move", -30, "by")}\n`;
+    text += `${formatPlanList(moveTimelinePlan.thirtyPlusDays)}\n\n`;
+    text += `${getMoveTimelineBucketLabel("14 Days Before Move", -14, "by")}\n`;
+    text += `${formatPlanList(moveTimelinePlan.fourteenDays)}\n\n`;
+    text += `${getMoveTimelineBucketLabel("Move Week", 0, "around")}\n`;
+    text += `${formatPlanList(moveTimelinePlan.moveWeek)}\n\n`;
+    text += `${getMoveTimelineBucketLabel("After Move", 0, "after")}\n`;
+    text += `${formatPlanList(moveTimelinePlan.afterMove)}\n`;
 
     return text;
   };
@@ -2097,6 +2220,20 @@ function App() {
             )}
           </div>
 
+          {taskCompletionMessage && (
+            <div style={completionFollowUpCard}>
+              <strong style={completionFollowUpMessage}>{taskCompletionMessage}</strong>
+              <div style={completionFollowUpActions}>
+                <button onClick={openOverallSummary} style={secondaryBtn}>
+                  Go to Summary
+                </button>
+                <button onClick={continueToNextBestAction} style={primaryBtn}>
+                  Continue to Next Best Action
+                </button>
+              </div>
+            </div>
+          )}
+
           <div style={modalActions}>
             <button
               onClick={markSelectedTaskComplete}
@@ -2289,6 +2426,8 @@ function App() {
     const recommendedNextUpdates = getRecommendedNextUpdates();
     const moveMatePlan = getMoveMatePlan();
     const moveMateTiming = getMoveMateTiming();
+    const moveTimelinePlan = getMoveTimelinePlan();
+    const nextBestAction = getNextBestAction();
     const moveMatePlanGroups = [
       { key: "high", label: "High Priority" },
       { key: "medium", label: "Medium Priority" },
@@ -2298,6 +2437,12 @@ function App() {
       { key: "beforeMove", label: "Before Move" },
       { key: "moveWeek", label: "Move Week" },
       { key: "afterMove", label: "After Move" },
+    ];
+    const moveTimelineGroups = [
+      { key: "thirtyPlusDays", label: getMoveTimelineBucketLabel("30+ Days Before Move", -30, "by") },
+      { key: "fourteenDays", label: getMoveTimelineBucketLabel("14 Days Before Move", -14, "by") },
+      { key: "moveWeek", label: getMoveTimelineBucketLabel("Move Week", 0, "around") },
+      { key: "afterMove", label: getMoveTimelineBucketLabel("After Move", 0, "after") },
     ];
     const completedItems = selectedSummaryCategories.flatMap(cat => (
       (categories[cat] || [])
@@ -2392,6 +2537,33 @@ function App() {
 
           <div style={prioritySummaryCard}>
             <div>
+              <div style={eyebrow}>Next Best Action</div>
+              <strong style={timelineTitle}>
+                {nextBestAction ? nextBestAction.name : "You're all caught up."}
+              </strong>
+            </div>
+            {nextBestAction && (
+              <>
+                <div style={detailGrid}>
+                  <div style={detailStat}>
+                    <span style={infoLabel}>Category</span>
+                    <strong style={detailValue}>{nextBestAction.cat}</strong>
+                  </div>
+                  <div style={detailStat}>
+                    <span style={infoLabel}>Estimated time</span>
+                    <strong style={detailValue}>{nextBestAction.estimatedTime} minutes</strong>
+                  </div>
+                </div>
+                <p style={timelineCopy}>{nextBestAction.reason}</p>
+                <button onClick={() => startNextBestAction(nextBestAction)} style={primaryBtn}>
+                  Start
+                </button>
+              </>
+            )}
+          </div>
+
+          <div style={prioritySummaryCard}>
+            <div>
               <div style={eyebrow}>Your MoveMate Plan</div>
               <strong style={timelineTitle}>Remaining update order</strong>
             </div>
@@ -2425,6 +2597,30 @@ function App() {
                   <strong style={moveMatePlanGroupTitle}>{group.label}</strong>
                   <div style={prioritySummaryList}>
                     {moveMateTiming[group.key].length ? moveMateTiming[group.key].map(item => (
+                      <div key={`${group.key}-${item.cat}-${item.name}`} style={prioritySummaryRow}>
+                        <strong style={prioritySummaryName}>{item.name}</strong>
+                        <span style={categoryBtnMeta}>{item.cat} - {item.source}</span>
+                      </div>
+                    )) : (
+                      <span style={moveMatePlanEmpty}>Nothing remaining</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div style={prioritySummaryCard}>
+            <div>
+              <div style={eyebrow}>Your Move Timeline</div>
+              <strong style={timelineTitle}>Move-date plan for remaining services</strong>
+            </div>
+            <div style={moveMatePlanGroupList}>
+              {moveTimelineGroups.map(group => (
+                <div key={group.key} style={moveMatePlanGroup}>
+                  <strong style={moveMatePlanGroupTitle}>{group.label}</strong>
+                  <div style={prioritySummaryList}>
+                    {moveTimelinePlan[group.key].length ? moveTimelinePlan[group.key].map(item => (
                       <div key={`${group.key}-${item.cat}-${item.name}`} style={prioritySummaryRow}>
                         <strong style={prioritySummaryName}>{item.name}</strong>
                         <span style={categoryBtnMeta}>{item.cat} - {item.source}</span>
@@ -3778,6 +3974,27 @@ const completionCheckInput = {
   marginTop: 2,
   accentColor: "var(--accent)",
   cursor: "pointer",
+};
+
+const completionFollowUpCard = {
+  display: "grid",
+  gap: 12,
+  marginBottom: 12,
+  padding: 16,
+  border: "1px solid var(--success-border)",
+  borderRadius: 12,
+  background: "var(--success-bg)",
+};
+
+const completionFollowUpMessage = {
+  color: "#15803d",
+  lineHeight: "140%",
+};
+
+const completionFollowUpActions = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+  gap: 10,
 };
 
 const confidenceNote = {
