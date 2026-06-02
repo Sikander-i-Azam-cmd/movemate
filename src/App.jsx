@@ -1353,6 +1353,7 @@ function App() {
       if (
         normalizedName === "dmv" ||
         normalizedName.includes("driver license") ||
+        normalizedName === "voter registration" ||
         normalizedName === "pharmacy" ||
         ["Delivery Apps", "Shopping / Ecommerce", "Healthcare"].includes(item.cat)
       ) {
@@ -1366,11 +1367,35 @@ function App() {
     return timing;
   };
 
-  const progress = (() => {
-    const all = Object.values(categories).flat();
-    const done = all.filter(i => getItemStatus(i) === "completed").length;
-    return all.length ? Math.round((done / all.length) * 100) : 0;
-  })();
+  const getRemainingServiceTimeEstimate = (cat, serviceName) => {
+    const normalizedName = normalizeServiceName(serviceName);
+    const categoryEstimates = {
+      Banks: 3,
+      "Credit Cards": 2,
+      Insurance: 3,
+      Utilities: 5,
+      Subscriptions: 1,
+      "Shopping / Ecommerce": 1,
+      Healthcare: 3,
+      "Work / Payroll": 2,
+    };
+
+    if (normalizedName.includes("usps")) return 5;
+    if (normalizedName === "dmv" || normalizedName.includes("driver license")) return 10;
+    return categoryEstimates[cat] || 1;
+  };
+
+  const trackedServices = Object.values(categories).flat();
+  const completedTrackedServices = trackedServices.filter(item => getItemStatus(item) === "completed");
+  const remainingTrackedServices = trackedServices.filter(item => getItemStatus(item) !== "completed");
+  const progress = trackedServices.length
+    ? Math.round((completedTrackedServices.length / trackedServices.length) * 100)
+    : 0;
+  const estimatedTimeRemaining = Object.entries(categories).reduce((total, [cat, items]) => (
+    total + items
+      .filter(item => getItemStatus(item) !== "completed")
+      .reduce((categoryTotal, item) => categoryTotal + getRemainingServiceTimeEstimate(cat, item.text), 0)
+  ), 0);
 
   const estimatedTimeSaved = Object.entries(categories).reduce((total, [cat, items]) => {
     const completedItems = items.filter(item => getItemStatus(item) === "completed").length;
@@ -1438,7 +1463,10 @@ function App() {
     text += `New address: ${savedAddress || "Not provided"}\n\n`;
 
     text += "Progress\n";
-    text += `Overall progress: ${progress}%\n`;
+    text += `MoveMate Readiness Score: ${progress}%\n`;
+    text += `Completed Services: ${completedTrackedServices.length}\n`;
+    text += `Remaining Services: ${remainingTrackedServices.length}\n`;
+    text += `Estimated Time Remaining: ${estimatedTimeRemaining} minutes\n`;
     text += `Estimated time saved: ${estimatedTimeSaved} minutes\n`;
     text += `${summaryMode === "overall" ? "Categories included" : "Selected category"}: ${selectedSummaryCategories.join(", ")}\n\n`;
 
@@ -1459,7 +1487,7 @@ function App() {
     text += "Low Priority\n";
     text += `${formatPlanList(moveMatePlan.low)}\n\n`;
 
-    text += "Timing guidance\n";
+    text += "When to Update\n";
     text += "Before Move\n";
     text += `${formatPlanList(moveMateTiming.beforeMove)}\n\n`;
     text += "Move Week\n";
@@ -2334,13 +2362,13 @@ function App() {
 
           <div style={summaryProgressCard}>
             <div>
-              <div style={eyebrow}>Progress summary</div>
-              <strong style={summaryProgressValue}>{progress}% complete</strong>
+              <div style={eyebrow}>MoveMate Readiness Score</div>
+              <strong style={summaryProgressValue}>{progress}%</strong>
             </div>
             <div style={summaryProgressMeta}>
-              <span>Completed Services: {completedItems.length}</span>
-              <span>Remaining Services: {remainingItems.length}</span>
-              <span>{estimatedTimeSaved} minutes saved</span>
+              <span>Completed Services: {completedTrackedServices.length}</span>
+              <span>Remaining Services: {remainingTrackedServices.length}</span>
+              <span>Estimated Time Remaining: {estimatedTimeRemaining} minutes</span>
             </div>
             <div style={readinessTrack}>
               <div style={{ ...readinessFill, width: `${progress}%` }} />
@@ -2388,8 +2416,8 @@ function App() {
 
           <div style={prioritySummaryCard}>
             <div>
-              <div style={eyebrow}>Timing guidance</div>
-              <strong style={timelineTitle}>When to update each service</strong>
+              <div style={eyebrow}>When to Update</div>
+              <strong style={timelineTitle}>Timing guidance for remaining services</strong>
             </div>
             <div style={moveMatePlanGroupList}>
               {moveMateTimingGroups.map(group => (
@@ -2421,11 +2449,15 @@ function App() {
             </div>
             <div style={summaryStat}>
               <span style={infoLabel}>Completed services</span>
-              <strong style={summaryStatValue}>{completedItems.length}</strong>
+              <strong style={summaryStatValue}>{completedTrackedServices.length}</strong>
             </div>
             <div style={summaryStat}>
               <span style={infoLabel}>Remaining services</span>
-              <strong style={summaryStatValue}>{remainingItems.length}</strong>
+              <strong style={summaryStatValue}>{remainingTrackedServices.length}</strong>
+            </div>
+            <div style={summaryStatWide}>
+              <span style={infoLabel}>Estimated time remaining</span>
+              <strong style={summaryStatValue}>{estimatedTimeRemaining} minutes</strong>
             </div>
             <div style={summaryStatWide}>
               <span style={infoLabel}>Estimated time saved</span>
